@@ -8,14 +8,15 @@ const RoleSelect = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // If role is already set, redirect
   useEffect(() => {
-    if (isLoaded && user) {
-      const role = user.publicMetadata?.role;
-      if (role === "vendor") navigate("/vendor");
-      else if (role === "supplier") navigate("/supplier");
-      else if (role === "admin") navigate("/admin");
-    }
+    if (!isLoaded || !user) return;
+
+    const role = user.publicMetadata?.role;
+
+    // ✅ Only redirect if role is already assigned
+    if (role === "vendor") navigate("/vendor");
+    else if (role === "supplier") navigate("/supplier");
+    else if (role === "admin") navigate("/admin");
   }, [isLoaded, user, navigate]);
 
   const handleRoleSelect = async (role) => {
@@ -23,12 +24,20 @@ const RoleSelect = () => {
     setLoading(true);
 
     try {
+      // 1. Update Clerk metadata
+      await user.update({
+        publicMetadata: { role },
+      });
+
+      // 2. Save user in MongoDB
       await axios.post("http://localhost:3000/api/users/assign-role", {
         clerkId: user.id,
         role,
+        name: user.fullName,
+        email: user.primaryEmailAddress.emailAddress,
       });
 
-      // Redirect after setting role
+      // 3. Redirect
       if (role === "vendor") navigate("/vendor");
       else if (role === "supplier") navigate("/supplier");
       else if (role === "admin") navigate("/admin");
