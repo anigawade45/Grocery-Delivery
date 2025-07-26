@@ -1,33 +1,84 @@
 const User = require("../models/User");
 
-const { clerkClient } = require("@clerk/clerk-sdk-node");
-
+// Assign role and store metadata after signup
 const assignUserRole = async (req, res) => {
-    const { clerkId, role } = req.body;
-
-    if (!clerkId || !role) {
-        return res.status(400).json({ error: "Missing clerkId or role" });
-    }
+    const { clerkId, role, phone, bio } = req.body;
 
     try {
-        await clerkClient.users.updateUser(clerkId, {
-            publicMetadata: { role },
-        });
+        const user = await User.findOneAndUpdate(
+            { clerkId },
+            {
+                role,
+                phone,
+                bio,
+                status: "pending",
+            },
+            { new: true }
+        );
 
-        return res.status(200).json({ message: "Role updated successfully" });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        res.json({ success: true, user });
     } catch (error) {
-        return res.status(500).json({ error: "Failed to update role", details: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// Get all users (admin use)
+// Get all users (admin only)
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find().sort({ createdAt: -1 });
-        res.status(200).json(users);
+        res.json(users);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch users." });
+        res.status(500).json({ message: error.message });
     }
 };
 
-module.exports = { assignUserRole, getAllUsers };   
+// Get user by MongoDB _id
+const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get user by Clerk ID
+const getUserByClerkId = async (req, res) => {
+    try {
+        const user = await User.findOne({ clerkId: req.params.clerkId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Admin updates verification status (approve/reject)
+const updateUserStatus = async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json({ message: "Status updated", user });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = {
+    assignUserRole,
+    getAllUsers,
+    getUserById,
+    getUserByClerkId,
+    updateUserStatus,
+};

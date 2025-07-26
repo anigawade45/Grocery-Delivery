@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -21,6 +22,8 @@ import OrderManager from "../pages/supplier/OrderManager";
 import SupplierDashboard from "../pages/supplier/SupplierDashboard";
 import ProductManager from "../pages/supplier/ProductManager";
 import ProductList from "../pages/supplier/ProductList";
+import Pending from "../pages/auth/Pending";
+import Rejected from "../pages/auth/Rejected";
 
 const AppRoutes = () => {
   return (
@@ -29,7 +32,9 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/select-role" element={<RoleSelect />} />
-
+      <Route path="/pending" element={<Pending />} />
+      <Route path="/rejected" element={<Rejected />} />
+      <Route path="/signup/sso-callback" element={<Navigate to="/" />} />
       {/* Vendor Dashboard with nested routes */}
       <Route
         path="/vendor"

@@ -12,7 +12,7 @@ const SignupPage = () => {
   const handleOnSignUp = async () => {
     try {
       await signUp.update({
-        unsafeMetadata: {
+        publicMetadata: {
           role: role,
         },
       });

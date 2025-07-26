@@ -22,9 +22,12 @@ app.use(clerkMiddleware());
 // 🚏 Routes
 const userRoutes = require("./routes/userRoutes");
 const clerkWebhook = require("./routes/clerkWebhook");
+const adminRoutes = require("./routes/adminRoutes");
+
 
 app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhook);
+app.use("/api/admin", adminRoutes);
 
 // Optional (for future use)
 // const productRoutes = require("./routes/product.routes");
