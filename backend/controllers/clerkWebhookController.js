@@ -3,7 +3,7 @@ const User = require("../models/User");
 
 const clerkWebhooks = async (req, res) => {
     try {
-        const payload = req.rawBody; // MUST use raw body for signature verification
+        const payload = req.body;
         const headers = {
             "svix-id": req.headers["svix-id"],
             "svix-timestamp": req.headers["svix-timestamp"],
@@ -13,49 +13,41 @@ const clerkWebhooks = async (req, res) => {
         const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
         const evt = wh.verify(payload, headers);
 
-        const { type, data } = evt;
+        const { data, type } = evt;
 
         switch (type) {
             case "user.created": {
-                const newUser = {
-                    _id: data.id,
-                    email: data.email_addresses[0]?.email_address,
-                    name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-                    imageUrl: data.image_url,
-                    role: data.public_metadata?.role || "vendor",
-                    status: "approved",
+                const userData = {
+                    clerkId: data.id,
+                    email: data.email_addresses[0].email_address,
+                    name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+                    role: data.public_metadata?.role || "vendor", // fallback default
                 };
-                await User.create(newUser);
-                console.log("✅ User created:", newUser);
+
+                await User.create(userData);
                 break;
             }
 
             case "user.updated": {
-                const update = {
-                    email: data.email_addresses[0]?.email_address,
-                    name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-                    imageUrl: data.image_url,
-                    role: data.public_metadata?.role,
+                const updatedData = {
+                    email: data.email_addresses[0].email_address,
+                    name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+                    role: data.public_metadata?.role || undefined,
                 };
-                await User.findByIdAndUpdate(data.id, update);
-                console.log("📝 User updated:", data.id);
+
+                await User.findOneAndUpdate({ clerkId: data.id }, updatedData);
                 break;
             }
 
             case "user.deleted": {
-                await User.findByIdAndDelete(data.id);
-                console.log("❌ User deleted:", data.id);
+                await User.findOneAndDelete({ clerkId: data.id });
                 break;
             }
-
-            default:
-                console.log("ℹ️ Unhandled Clerk webhook event:", type);
-                break;
         }
 
         res.status(200).json({ success: true });
     } catch (err) {
-        console.error("❌ Clerk webhook error:", err.message);
+        console.error("🔴 Webhook Error:", err.message);
         res.status(400).json({ success: false, error: err.message });
     }
 };
