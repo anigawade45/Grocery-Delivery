@@ -3,19 +3,15 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { clerkMiddleware } = require("@clerk/express");
+const bodyParser = require("body-parser");
 
 dotenv.config();
 
 const app = express();
 
-// 🛡️ Raw body parser ONLY for webhooks
 app.use(
     "/api/webhooks",
-    express.json({
-        verify: (req, res, buf) => {
-            req.rawBody = buf.toString();
-        },
-    })
+    bodyParser.raw({ type: "application/json" })
 );
 
 // 🌐 Other middlewares

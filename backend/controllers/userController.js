@@ -1,25 +1,27 @@
 const User = require("../models/User");
 
-// Create or update user from Clerk webhook or client-side request
-exports.upsertUser = async (req, res) => {
+const { clerkClient } = require("@clerk/clerk-sdk-node");
+
+const assignUserRole = async (req, res) => {
+    const { clerkId, role } = req.body;
+
+    if (!clerkId || !role) {
+        return res.status(400).json({ error: "Missing clerkId or role" });
+    }
+
     try {
-        const { clerkId, name, email, phone, role, bio } = req.body;
+        await clerkClient.users.updateUser(clerkId, {
+            publicMetadata: { role },
+        });
 
-        const user = await User.findOneAndUpdate(
-            { clerkId },
-            { name, email, phone, role, bio },
-            { upsert: true, new: true }
-        );
-
-        res.status(200).json(user);
+        return res.status(200).json({ message: "Role updated successfully" });
     } catch (error) {
-        console.error("User Upsert Error:", error);
-        res.status(500).json({ error: "Server error while creating user." });
+        return res.status(500).json({ error: "Failed to update role", details: error.message });
     }
 };
 
 // Get all users (admin use)
-exports.getAllUsers = async (req, res) => {
+const getAllUsers = async (req, res) => {
     try {
         const users = await User.find().sort({ createdAt: -1 });
         res.status(200).json(users);
@@ -27,3 +29,5 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch users." });
     }
 };
+
+module.exports = { assignUserRole, getAllUsers };   
