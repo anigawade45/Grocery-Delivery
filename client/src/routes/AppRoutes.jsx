@@ -4,7 +4,6 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import RoleSelect from "../pages/auth/RoleSelect";
 import VendorDashboard from "../pages/vendor/Dashboard";
-import SupplierDashboard from "../pages/supplier/Dashboard";
 import AdminDashboard from "../pages/admin/Dashboard";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 import BrowseProducts from "../pages/vendor/BrowseProducts";
@@ -12,11 +11,6 @@ import Cart from "../pages/vendor/Cart";
 import OrderHistory from "../pages/vendor/OrderHistory";
 import ProfileSettings from "../pages/vendor/ProfileSettings";
 import OrderDetails from "../pages/vendor/OrderDetails";
-import ProductDetails from "../pages/vendor/ProductDetails";
-import SupplierVerification from "../pages/admin/SupplierVerificationPage";
-import ReportedReviews from "../pages/admin/ReportedReviews";
-import UserManagement from "../pages/admin/UserManagement";
-
 const AppRoutes = () => {
   return (
     <Routes>
@@ -25,7 +19,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
       <Route path="/select-role" element={<RoleSelect />} />
 
-      {/* Vendor Dashboard with nested routes */}
+      {/* Vendor Dashboard with nested routes */}  
       <Route
         path="/vendor"
         element={
@@ -50,7 +44,13 @@ const AppRoutes = () => {
             <SupplierDashboard />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="products" element={<ProductManager />} />
+        <Route path="products-display" element={<ProductList />} />
+        <Route path="orders" element={<OrderManager />} />
+        <Route path="delivery" element={<DeliveryUpdater />} />
+        <Route path="reviews" element={<ReviewManager />} />
+      </Route>
 
       <Route
         path="/admin"
