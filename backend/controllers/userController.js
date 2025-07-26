@@ -42,3 +42,60 @@ const assignUserRole = async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+// Get all users (admin only)
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find().sort({ createdAt: -1 });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get user by MongoDB _id
+const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get user by Clerk ID
+const getUserByClerkId = async (req, res) => {
+    try {
+        const user = await User.findOne({ clerkId: req.params.clerkId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Admin updates verification status (approve/reject)
+const updateUserStatus = async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json({ message: "Status updated", user });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = {
+    assignUserRole,
+    getAllUsers,
+    getUserById,
+    getUserByClerkId,
+    updateUserStatus,
+};
