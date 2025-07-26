@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/express": "^1.7.13",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
@@ -8,7 +9,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.5",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "svix": "^1.69.0"
   },
   "name": "backend",
   "version": "1.0.0",

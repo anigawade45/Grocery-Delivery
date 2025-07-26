@@ -8,8 +8,14 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json()); // Parse JSON bodies
+app.use(cors());    
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf.toString();
+    }
+}));
+
+
 
 // Routes (import and mount here)
 const userRoutes = require("./routes/userRoutes");
@@ -20,7 +26,7 @@ const clerkWebhook = require("./routes/clerkWebhook");
 // const supplierRoutes = require("./routes/supplier.routes");
 
 app.use("/api/users", userRoutes);
-app.use("/api/clerk-webhook", clerkWebhook);
+app.use("/api/webhooks", clerkWebhook);
 // app.use("/api/products", productRoutes);
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/reviews", reviewRoutes);
