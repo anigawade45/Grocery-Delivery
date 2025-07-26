@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { products } from "../../data/data"; // importing full product list
 
-// Simulated cart: Pick some product IDs and add quantity
 const initialCartItems = [
   { productId: "p1", quantity: 2 },
   { productId: "p5", quantity: 1 },
@@ -10,8 +9,14 @@ const initialCartItems = [
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState(initialCartItems);
+  const [loading, setLoading] = useState(true);
 
-  // Find product details by ID
+  // Simulate loading (e.g. from backend or localStorage)
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const getProductDetails = (id) => products.find((p) => p._id === id);
 
   const handleQuantityChange = (id, newQty) => {
@@ -32,10 +37,45 @@ const Cart = () => {
     setCartItems([]);
   };
 
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem("cartItems"));
+    if (savedCart) setCartItems(savedCart);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cartItems", JSON.stringify(cartItems));
+  }, [cartItems]);
+
   const totalAmount = cartItems.reduce((sum, item) => {
     const product = getProductDetails(item.productId);
-    return sum + product.price * item.quantity;
+    return product ? sum + product.price * item.quantity : sum;
   }, 0);
+
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto py-10 px-4">
+        <h2 className="text-3xl font-semibold text-orange-700 mb-8">
+          Your Cart
+        </h2>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="flex gap-4 bg-white rounded p-4 shadow animate-pulse"
+            >
+              <div className="w-32 h-24 bg-gray-200 rounded" />
+              <div className="flex-1 space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+                <div className="h-4 bg-gray-200 rounded w-1/4" />
+                <div className="h-4 bg-gray-200 rounded w-1/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
@@ -43,10 +83,10 @@ const Cart = () => {
 
       {cartItems.length === 0 ? (
         <div className="text-center text-gray-500">
-          <p className="mb-4">🛒 Your cart is empty.</p>
+          <p className="mb-4 text-lg">🛒 Your cart is empty.</p>
           <a
             href="/vendor/browse"
-            className="text-orange-600 underline hover:text-orange-700"
+            className="text-orange-600 underline hover:text-orange-700 font-medium"
           >
             ← Go browse products
           </a>
@@ -55,6 +95,8 @@ const Cart = () => {
         <div className="space-y-6">
           {cartItems.map((item) => {
             const product = getProductDetails(item.productId);
+            if (!product) return null;
+
             return (
               <div
                 key={item.productId}
@@ -83,16 +125,16 @@ const Cart = () => {
                     onClick={() =>
                       handleQuantityChange(item.productId, item.quantity - 1)
                     }
-                    className="bg-orange-200 text-orange-700 px-2 py-1 rounded"
+                    className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
                   >
                     −
                   </button>
-                  <span className="px-2">{item.quantity}</span>
+                  <span className="px-2 font-medium">{item.quantity}</span>
                   <button
                     onClick={() =>
                       handleQuantityChange(item.productId, item.quantity + 1)
                     }
-                    className="bg-orange-200 text-orange-700 px-2 py-1 rounded"
+                    className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
                   >
                     +
                   </button>
@@ -100,7 +142,7 @@ const Cart = () => {
 
                 <button
                   onClick={() => handleRemove(item.productId)}
-                  className="text-sm text-red-500 hover:underline"
+                  className="text-sm text-red-500 hover:underline mt-2 sm:mt-0"
                 >
                   Remove
                 </button>

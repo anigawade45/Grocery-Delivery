@@ -12,6 +12,11 @@ import Cart from "../pages/vendor/Cart";
 import OrderHistory from "../pages/vendor/OrderHistory";
 import ProfileSettings from "../pages/vendor/ProfileSettings";
 import OrderDetails from "../pages/vendor/OrderDetails";
+import ProductDetails from "../pages/vendor/ProductDetails";
+import SupplierVerification from "../pages/admin/SupplierVerificationPage";
+import ReportedReviews from "../pages/admin/ReportedReviews";
+import UserManagement from "../pages/admin/UserManagement";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -34,6 +39,7 @@ const AppRoutes = () => {
         <Route path="orders" element={<OrderHistory />} />
         <Route path="profile" element={<ProfileSettings />} />
         <Route path="orders/:orderId" element={<OrderDetails />} />
+        <Route path="product/:productId" element={<ProductDetails />} />
       </Route>
 
       {/* Supplier and Admin Dashboards */}
@@ -53,7 +59,11 @@ const AppRoutes = () => {
             <AdminDashboard />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="suppliers" element={<SupplierVerification />} />
+        <Route path="reviews" element={<ReportedReviews />} />
+        <Route path="users" element={<UserManagement />} />
+      </Route>
     </Routes>
   );
 };

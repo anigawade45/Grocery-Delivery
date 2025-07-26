@@ -1,6 +1,14 @@
-
+// pages/vendor/VendorDashboard.jsx
 import React from "react";
+import { Outlet } from "react-router-dom";
+import AdminDashboardLayout from "./DashboardLayout";
+
 const AdminDashboard = () => {
-  return <div className="p-4">Welcome, Admin!</div>;
+  return (
+    <AdminDashboardLayout>
+      <Outlet />
+    </AdminDashboardLayout>
+  );
 };
+
 export default AdminDashboard;

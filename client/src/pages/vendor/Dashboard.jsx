@@ -1,4 +1,3 @@
-// pages/vendor/VendorDashboard.jsx
 import React from "react";
 import { Outlet } from "react-router-dom";
 import DashboardLayout from "./DashboardLayout";

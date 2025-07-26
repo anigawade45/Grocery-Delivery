@@ -51,3 +51,32 @@ export const userDummyData = [
     { _id: "u9", fullName: "Arjun Yadav", email: "arjun@vendor.com", role: "vendor", profilePic: profile1, bio: "Paratha & chai shop owner", location: "Jaipur" },
     { _id: "u10", fullName: "Sneha Gupta", email: "sneha@supplier.com", role: "supplier", profilePic: profile5, bio: "Fast delivery network", location: "Hyderabad" },
 ];
+
+export const mockSuppliers = [
+    {
+        id: "s1",
+        name: "Anil Sharma",
+        email: "anil@supplyhub.com",
+        phone: "9876543210",
+        status: "Pending",
+        documents: {
+            downloadUrl: "/docs/anil-verification.pdf",
+            files: [
+                { name: "License.pdf", url: "/docs/license.pdf" },
+                { name: "Aadhar.pdf", url: "/docs/aadhar.pdf" },
+            ],
+        },
+    },
+    {
+        id: "s2",
+        name: "Meena Traders",
+        email: "contact@meenatraders.in",
+        phone: "8123456789",
+        status: "Approved",
+        documents: {
+            downloadUrl: "/docs/meena-verification.pdf",
+            files: [{ name: "GST.pdf", url: "/docs/gst.pdf" }],
+        },
+    },
+];
+

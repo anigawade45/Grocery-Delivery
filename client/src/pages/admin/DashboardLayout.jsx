@@ -3,7 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { Menu, X } from "lucide-react";
 
-const DashboardLayout = () => {
+const AdminDashboardLayout = () => {
   const { user } = useUser();
   const { signOut } = useClerk();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,15 +14,13 @@ const DashboardLayout = () => {
       : "text-gray-700 hover:text-orange-500 transition";
 
   const navItems = [
-    { to: "/vendor/browse", icon: "🍲", label: "Browse Products" },
-    { to: "/vendor/cart", icon: "🛒", label: "My Cart" },
-    { to: "/vendor/orders", icon: "📦", label: "Order History" },
-    { to: "/vendor/profile", icon: "⚙️", label: "Profile" },
+    { to: "/admin/suppliers", icon: "🧾", label: "Supplier Verification" },
+    { to: "/admin/reviews", icon: "🚩", label: "Reported Reviews" },
+    { to: "/admin/users", icon: "👥", label: "User Management" },
   ];
 
   return (
     <div className="flex min-h-screen bg-orange-50 relative">
-      {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
         className="md:hidden absolute top-4 left-4 z-30 text-orange-600"
@@ -30,7 +28,6 @@ const DashboardLayout = () => {
         <Menu size={28} />
       </button>
 
-      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-40 z-20"
@@ -38,13 +35,11 @@ const DashboardLayout = () => {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed md:static z-30 inset-y-0 left-0 w-64 bg-white border-r shadow-sm p-6 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        {/* Close Button for mobile */}
         <div className="md:hidden flex justify-end mb-4">
           <button
             onClick={() => setSidebarOpen(false)}
@@ -76,21 +71,16 @@ const DashboardLayout = () => {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Topbar */}
         <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-800">
-            Welcome,{" "}
+            Admin Panel – Welcome,{" "}
             {user?.firstName ||
               user?.emailAddresses[0]?.emailAddress ||
-              "Vendor"}
+              "Admin"}
             !
           </h1>
-          {/* Future: Add profile photo or notification icon here */}
         </header>
-
-        {/* Page Content */}
         <main className="flex-1 px-6 py-8">
           <Outlet />
         </main>
@@ -99,4 +89,4 @@ const DashboardLayout = () => {
   );
 };
 
-export default DashboardLayout;
+export default AdminDashboardLayout;
