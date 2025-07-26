@@ -11,6 +11,17 @@ import Cart from "../pages/vendor/Cart";
 import OrderHistory from "../pages/vendor/OrderHistory";
 import ProfileSettings from "../pages/vendor/ProfileSettings";
 import OrderDetails from "../pages/vendor/OrderDetails";
+import ProductDetails from "../pages/vendor/ProductDetails";
+import SupplierVerification from "../pages/admin/SupplierVerificationPage";
+import ReportedReviews from "../pages/admin/ReportedReviews";
+import UserManagement from "../pages/admin/UserManagement";
+import DeliveryUpdater from "../pages/supplier/DeliveryUpdater";
+import ReviewManager from "../pages/supplier/ReviewManager";
+import OrderManager from "../pages/supplier/OrderManager";
+import SupplierDashboard from "../pages/supplier/SupplierDashboard";
+import ProductManager from "../pages/supplier/ProductManager";
+import ProductList from "../pages/supplier/ProductList";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -19,7 +30,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
       <Route path="/select-role" element={<RoleSelect />} />
 
-      {/* Vendor Dashboard with nested routes */}  
+      {/* Vendor Dashboard with nested routes */}
       <Route
         path="/vendor"
         element={
