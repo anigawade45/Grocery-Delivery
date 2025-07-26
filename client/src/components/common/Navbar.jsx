@@ -18,9 +18,9 @@ const Navbar = () => {
           className="flex items-center space-x-2 cursor-pointer"
           onClick={() => navigate("/")}
         >
-          <img src={Logo} alt="Logo" className="h-10 w-10" />
+          <img src={Logo} alt="Logo" className="h-12 w-12" />
           <div>
-            <p className="text-lg font-bold text-orange-600">VendorHub</p>
+            <p className="text-lg font-bold text-orange-600">VendorVerse</p>
             <p className="text-sm text-gray-500 -mt-1">Fresh Supply Network</p>
           </div>
         </div>

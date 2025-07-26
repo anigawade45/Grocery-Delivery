@@ -1,5 +1,14 @@
+// pages/vendor/VendorDashboard.jsx
 import React from "react";
+import { Outlet } from "react-router-dom";
+import DashboardLayout from "./DashboardLayout";
+
 const VendorDashboard = () => {
-  return <div className="p-4">Welcome, Vendor!</div>;
+  return (
+    <DashboardLayout>
+      <Outlet />
+    </DashboardLayout>
+  );
 };
+
 export default VendorDashboard;

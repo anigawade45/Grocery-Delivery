@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -7,7 +6,12 @@ import RoleSelect from "../pages/auth/RoleSelect";
 import VendorDashboard from "../pages/vendor/Dashboard";
 import SupplierDashboard from "../pages/supplier/Dashboard";
 import AdminDashboard from "../pages/admin/Dashboard";
-
+import ProtectedRoute from "../components/common/ProtectedRoute";
+import BrowseProducts from "../pages/vendor/BrowseProducts";
+import Cart from "../pages/vendor/Cart";
+import OrderHistory from "../pages/vendor/OrderHistory";
+import ProfileSettings from "../pages/vendor/ProfileSettings";
+import OrderDetails from "../pages/vendor/OrderDetails";
 const AppRoutes = () => {
   return (
     <Routes>
@@ -16,45 +20,38 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
       <Route path="/select-role" element={<RoleSelect />} />
 
+      {/* Vendor Dashboard with nested routes */}
       <Route
-        path="/vendor/dashboard"
+        path="/vendor"
         element={
-          <>
-            <SignedIn>
-              <VendorDashboard />
-            </SignedIn>
-            <SignedOut>
-              <RedirectToSignIn />
-            </SignedOut>
-          </>
+          <ProtectedRoute>
+            <VendorDashboard />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="browse" element={<BrowseProducts />} />
+        <Route path="cart" element={<Cart />} />
+        <Route path="orders" element={<OrderHistory />} />
+        <Route path="profile" element={<ProfileSettings />} />
+        <Route path="orders/:orderId" element={<OrderDetails />} />
+      </Route>
+
+      {/* Supplier and Admin Dashboards */}
+      <Route
+        path="/supplier"
+        element={
+          <ProtectedRoute>
+            <SupplierDashboard />
+          </ProtectedRoute>
         }
       />
 
       <Route
-        path="/supplier/dashboard"
+        path="/admin"
         element={
-          <>
-            <SignedIn>
-              <SupplierDashboard />
-            </SignedIn>
-            <SignedOut>
-              <RedirectToSignIn />
-            </SignedOut>
-          </>
-        }
-      />
-
-      <Route
-        path="/admin/dashboard"
-        element={
-          <>
-            <SignedIn>
-              <AdminDashboard />
-            </SignedIn>
-            <SignedOut>
-              <RedirectToSignIn />
-            </SignedOut>
-          </>
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
         }
       />
     </Routes>
