@@ -1,16 +1,15 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import React, { useState, useContext } from "react";
 import { Menu } from "lucide-react";
+import { AuthContext } from "../../context/AppContext";
+
 import ProductManager from "./ProductManager";
+import ProductList from "./ProductList";
 import OrderManager from "./OrderManager";
 import DeliveryUpdater from "./DeliveryUpdater";
 import ReviewManager from "./ReviewManager";
-import ProductList from "./ProductList";
 
 const SupplierDashboard = () => {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { user, logout } = useContext(AuthContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("products");
 
@@ -26,11 +25,6 @@ const SupplierDashboard = () => {
       {label}
     </button>
   );
-
-  const navLinkClass = ({ isActive }) =>
-    isActive
-      ? "text-orange-600 font-semibold"
-      : "text-gray-700 hover:text-orange-500 transition";
 
   return (
     <div className="flex min-h-screen bg-orange-50">
@@ -51,20 +45,48 @@ const SupplierDashboard = () => {
         <h2 className="text-2xl font-bold text-orange-600 mb-8">RasoiSathi</h2>
 
         <nav className="flex flex-col space-y-4 text-md font-medium">
-          <button onClick={() => setActiveTab("products")} className={activeTab === "products" ? "text-orange-600 font-semibold" : "text-gray-700 hover:text-orange-500 transition"}>
+          <button
+            onClick={() => setActiveTab("products")}
+            className={
+              activeTab === "products"
+                ? "text-orange-600 font-semibold"
+                : "text-gray-700 hover:text-orange-500 transition"
+            }
+          >
             📦 Manage Products
           </button>
-          <button onClick={() => setActiveTab("orders")} className={activeTab === "orders" ? "text-orange-600 font-semibold" : "text-gray-700 hover:text-orange-500 transition"}>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={
+              activeTab === "orders"
+                ? "text-orange-600 font-semibold"
+                : "text-gray-700 hover:text-orange-500 transition"
+            }
+          >
             🧾 Incoming Orders
           </button>
-          <button onClick={() => setActiveTab("delivery")} className={activeTab === "delivery" ? "text-orange-600 font-semibold" : "text-gray-700 hover:text-orange-500 transition"}>
+          <button
+            onClick={() => setActiveTab("delivery")}
+            className={
+              activeTab === "delivery"
+                ? "text-orange-600 font-semibold"
+                : "text-gray-700 hover:text-orange-500 transition"
+            }
+          >
             🚚 Delivery Status
           </button>
-          <button onClick={() => setActiveTab("reviews")} className={activeTab === "reviews" ? "text-orange-600 font-semibold" : "text-gray-700 hover:text-orange-500 transition"}>
+          <button
+            onClick={() => setActiveTab("reviews")}
+            className={
+              activeTab === "reviews"
+                ? "text-orange-600 font-semibold"
+                : "text-gray-700 hover:text-orange-500 transition"
+            }
+          >
             💬 Customer Reviews
           </button>
           <button
-            onClick={() => signOut()}
+            onClick={logout}
             className="text-red-500 hover:text-red-600 text-left mt-4"
           >
             🚪 Logout
@@ -72,17 +94,14 @@ const SupplierDashboard = () => {
         </nav>
       </aside>
 
-      {/* Main Section */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Topbar */}
         <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-800">
-            Welcome,{" "}
-            {user?.firstName || user?.emailAddresses[0]?.emailAddress || "Supplier"}!
+            Welcome, {user?.name || user?.email || "Supplier"}!
           </h1>
         </header>
 
-        {/* Content Area */}
         <main className="flex-1 px-6 py-8">
           <div className="flex space-x-2 border-b mb-6">
             {tabButton("products", "Manage Products")}
@@ -92,8 +111,12 @@ const SupplierDashboard = () => {
           </div>
 
           <div className="bg-white p-4 rounded-lg shadow-md">
-            {activeTab === "products" && <ProductList />}
-            {activeTab === "products" && <ProductManager />}
+            {activeTab === "products" && (
+              <>
+                <ProductList />
+                <ProductManager />
+              </>
+            )}
             {activeTab === "orders" && <OrderManager />}
             {activeTab === "delivery" && <DeliveryUpdater />}
             {activeTab === "reviews" && <ReviewManager />}
