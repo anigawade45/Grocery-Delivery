@@ -1,16 +1,81 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { products } from "../../data/data";
+import axios from "axios";
 import { Star } from "lucide-react";
 
 const ProductDetails = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
 
-  const product = products.find((p) => p._id === productId);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState("");
 
-  if (!product) {
-    return <p className="text-center text-red-500 mt-10">Product not found</p>;
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/vendor/product/${productId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setProduct(res.data.product);
+      } catch (err) {
+        console.error("Failed to load product:", err);
+        setError("Failed to load product. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId]);
+
+  const handleAddToCart = async () => {
+    if (!product || !product._id) return;
+
+    setAdding(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/cart`,
+        {
+          productId: product._id,
+          quantity: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("✅ Product added to cart!");
+    } catch (err) {
+      console.error("Add to cart failed:", err);
+      alert("❌ Failed to add to cart");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-center mt-10">Loading product details...</p>;
+  }
+
+  if (error || !product) {
+    return (
+      <p className="text-center text-red-500 mt-10">
+        {error || "Product not found."}
+      </p>
+    );
   }
 
   return (
@@ -45,13 +110,16 @@ const ProductDetails = () => {
             Category: <span className="font-medium">{product.category}</span>
           </p>
           <p className="text-sm text-gray-600">
-            Supplier: <span className="font-medium">{product.supplier}</span>
+            Supplier:{" "}
+            <span className="font-medium">
+              {product.supplierId?.name || "Unknown"}
+            </span>
           </p>
 
           <div className="flex items-center gap-2 text-sm">
             <Star size={16} className="text-yellow-500" />
             <span className="text-gray-800 font-medium">
-              {product.rating} ({product.reviewsCount} reviews)
+              {product.rating || 4.3} ({product.reviewsCount || 32} reviews)
             </span>
           </div>
 
@@ -65,14 +133,15 @@ const ProductDetails = () => {
 
           {/* Add to Cart */}
           <button
-            disabled={!product.inStock}
+            disabled={!product.inStock || adding}
+            onClick={handleAddToCart}
             className={`mt-4 px-6 py-3 rounded text-white font-medium ${
               product.inStock
                 ? "bg-orange-600 hover:bg-orange-700"
                 : "bg-gray-400 cursor-not-allowed"
-            }`}
+            } ${adding ? "opacity-70" : ""}`}
           >
-            Add to Cart
+            {adding ? "Adding..." : "Add to Cart"}
           </button>
         </div>
       </div>

@@ -9,15 +9,25 @@ const app = express();
 
 // 🌐 Other middlewares
 app.use(cors());
+
+app.use(
+    cors({
+        origin: "http://localhost:5173", // frontend origin
+        credentials: true, // allow cookies/headers
+    })
+);
+
 app.use(express.json()); // body parser for all routes
 
 // 🚏 Routes
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const vendorRoutes = require("./routes/vendorRoutes");
 
 
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/vendor", vendorRoutes);
 
 // Optional (for future use)
 // const productRoutes = require("./routes/product.routes");

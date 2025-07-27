@@ -1,22 +1,39 @@
 import React, { useState, useEffect } from "react";
-import { products as allProducts } from "../../data/data";
+import axios from "axios";
 import { Link } from "react-router-dom";
 
 const BrowseProducts = () => {
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("");
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setProducts(allProducts); // simulate API delay
-      setLoading(false);
-    }, 1500);
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/vendor/products`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setProducts(res.data.products || []);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   const handleClearFilters = () => {
@@ -25,34 +42,70 @@ const BrowseProducts = () => {
     setSelectedSupplier("");
     setSearchTerm("");
     setSortOption("");
-    setMaxPrice("");
   };
 
-  const uniqueCategories = [...new Set(allProducts.map((p) => p.category))];
-  const uniqueSuppliers = [...new Set(allProducts.map((p) => p.supplier))];
+  // Filter and sort logic
+  useEffect(() => {
+    let temp = [...products];
 
-  const sortedProducts = [...products];
-  if (sortOption === "asc") {
-    sortedProducts.sort((a, b) => a.price - b.price);
-  } else if (sortOption === "desc") {
-    sortedProducts.sort((a, b) => b.price - a.price);
-  }
+    if (selectedCategory) {
+      temp = temp.filter((p) => p.category === selectedCategory);
+    }
+    if (selectedSupplier) {
+      temp = temp.filter((p) => p.supplierId?.name === selectedSupplier);
+    }
+    if (maxPrice) {
+      temp = temp.filter((p) => p.price <= parseFloat(maxPrice));
+    }
+    if (searchTerm) {
+      temp = temp.filter((p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  const filteredProducts = sortedProducts.filter((product) => {
-    const matchesCategory =
-      !selectedCategory || product.category === selectedCategory;
-    const matchesPrice = !maxPrice || product.price <= parseInt(maxPrice);
-    const matchesSupplier =
-      !selectedSupplier || product.supplier === selectedSupplier;
-    const matchesSearch =
-      !searchTerm ||
-      product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (sortOption === "asc") {
+      temp.sort((a, b) => a.price - b.price);
+    } else if (sortOption === "desc") {
+      temp.sort((a, b) => b.price - a.price);
+    }
 
-    return matchesCategory && matchesPrice && matchesSupplier && matchesSearch;
-  });
+    setFilteredProducts(temp);
+  }, [
+    products,
+    selectedCategory,
+    selectedSupplier,
+    maxPrice,
+    searchTerm,
+    sortOption,
+  ]);
 
-  const handleAddToCart = (product) => {
-    alert(`${product.name} added to cart!`);
+  const uniqueCategories = [
+    ...new Set(products.map((p) => p.category).filter(Boolean)),
+  ];
+  const uniqueSuppliers = [
+    ...new Set(products.map((p) => p.supplierId?.name).filter(Boolean)),
+  ];
+
+  const handleAddToCart = async (product) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/cart`,
+        {
+          productId: product._id,
+          quantity: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert(`${product.name} added to cart!`);
+    } catch (err) {
+      console.error("Error adding to cart:", err.response?.data || err.message);
+      alert("❌ Failed to add to cart");
+    }
   };
 
   const skeletons = Array.from({ length: 6 });
@@ -150,7 +203,9 @@ const BrowseProducts = () => {
                   {product.name}
                 </h3>
                 <p className="text-sm text-gray-500">{product.category}</p>
-                <p className="text-sm text-gray-600">By {product.supplier}</p>
+                <p className="text-sm text-gray-600">
+                  By {product.supplierId?.name || "Unknown"}
+                </p>
                 <p className="text-orange-600 font-bold text-lg">
                   ₹{product.price}
                 </p>

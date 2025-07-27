@@ -1,54 +1,94 @@
-import React, { useState, useEffect } from "react";
-import { products } from "../../data/data"; // importing full product list
-
-const initialCartItems = [
-  { productId: "p1", quantity: 2 },
-  { productId: "p5", quantity: 1 },
-  { productId: "p8", quantity: 1 },
-];
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Simulate loading (e.g. from backend or localStorage)
+  const fetchCart = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/vendor/cart`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setCart(res.data.cart);
+      setLoading(false); // set loading false here
+    } catch (err) {
+      console.error("Error fetching cart:", err);
+      setCart({ items: [] });
+      setLoading(false); // even on error
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    fetchCart();
   }, []);
 
-  const getProductDetails = (id) => products.find((p) => p._id === id);
-
-  const handleQuantityChange = (id, newQty) => {
+  const handleQuantityChange = async (productId, newQty) => {
     if (newQty < 1) return;
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.productId === id ? { ...item, quantity: newQty } : item
-      )
-    );
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/vendor/cart/${productId}`,
+        { quantity: newQty },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchCart(); // Refresh cart
+    } catch (err) {
+      console.error("Error updating quantity:", err);
+    }
   };
 
-  const handleRemove = (id) => {
-    setCartItems((prev) => prev.filter((item) => item.productId !== id));
+  const handleRemove = async (productId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/vendor/cart/${productId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchCart(); // Refresh cart
+    } catch (err) {
+      console.error("Error removing item:", err);
+    }
   };
 
-  const handlePlaceOrder = () => {
-    alert("✅ Order placed successfully!");
-    setCartItems([]);
+  const handlePlaceOrder = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/order`,
+        {}, // body (empty in this case)
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("✅ Order placed successfully!");
+      fetchCart(); // Clear cart
+    } catch (err) {
+      console.error("Error placing order:", err);
+      alert("❌ Failed to place order");
+    }
   };
 
-  useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cartItems"));
-    if (savedCart) setCartItems(savedCart);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("cartItems", JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  const totalAmount = cartItems.reduce((sum, item) => {
-    const product = getProductDetails(item.productId);
-    return product ? sum + product.price * item.quantity : sum;
+  const totalAmount = cart?.items?.reduce((sum, item) => {
+    const product = item.productId;
+    return sum + product.price * item.quantity;
   }, 0);
 
   if (loading) {
@@ -75,31 +115,28 @@ const Cart = () => {
       </div>
     );
   }
-  
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
       <h2 className="text-3xl font-semibold text-orange-700 mb-8">Your Cart</h2>
 
-      {cartItems.length === 0 ? (
+      {cart?.items?.length === 0 ? (
         <div className="text-center text-gray-500">
           <p className="mb-4 text-lg">🛒 Your cart is empty.</p>
-          <a
-            href="/vendor/browse"
+          <Link
+            to="/vendor/browse"
             className="text-orange-600 underline hover:text-orange-700 font-medium"
           >
             ← Go browse products
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="space-y-6">
-          {cartItems.map((item) => {
-            const product = getProductDetails(item.productId);
-            if (!product) return null;
-
+          {cart.items.map((item) => {
+            const product = item.productId;
             return (
               <div
-                key={item.productId}
+                key={product._id}
                 className="flex flex-col sm:flex-row items-center gap-4 bg-white shadow-md rounded-lg p-4"
               >
                 <img
@@ -112,7 +149,7 @@ const Cart = () => {
                     {product.name}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Supplier: {product.supplier}
+                    Supplier: {product.supplierId?.name}
                   </p>
                   <p className="text-orange-600 font-semibold">
                     ₹{product.price} × {item.quantity} = ₹
@@ -123,7 +160,7 @@ const Cart = () => {
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() =>
-                      handleQuantityChange(item.productId, item.quantity - 1)
+                      handleQuantityChange(product._id, item.quantity - 1)
                     }
                     className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
                   >
@@ -132,7 +169,7 @@ const Cart = () => {
                   <span className="px-2 font-medium">{item.quantity}</span>
                   <button
                     onClick={() =>
-                      handleQuantityChange(item.productId, item.quantity + 1)
+                      handleQuantityChange(product._id, item.quantity + 1)
                     }
                     className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
                   >
@@ -141,7 +178,7 @@ const Cart = () => {
                 </div>
 
                 <button
-                  onClick={() => handleRemove(item.productId)}
+                  onClick={() => handleRemove(product._id)}
                   className="text-sm text-red-500 hover:underline mt-2 sm:mt-0"
                 >
                   Remove

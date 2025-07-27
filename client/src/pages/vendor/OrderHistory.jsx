@@ -1,24 +1,59 @@
-import React, { useState } from "react";
-import { orderHistory } from "../../data/data";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
 const OrderHistory = () => {
+  const [orders, setOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [loading, setLoading] = useState(true);
 
-  const handleReorder = (items) => {
-    alert(`Reordered ${items.length} item(s)!`);
-    // Extend this to push items to cart context/localStorage if needed
+  const token = localStorage.getItem("token");
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/vendor/orders`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setOrders(res.data.orders);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredOrders = orderHistory.filter((order) =>
+  const handleReorder = async (orderId) => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/orders/${orderId}/reorder`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert("✅ Reordered successfully!");
+    } catch (err) {
+      console.error("Error during reorder:", err);
+      alert("❌ Failed to reorder");
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = orders.filter((order) =>
     filterStatus ? order.status === filterStatus : true
   );
 
   const sortedOrders = [...filteredOrders].sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
     return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
   });
 
@@ -52,68 +87,72 @@ const OrderHistory = () => {
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-x-auto">
-        <table className="min-w-full text-left">
-          <thead className="bg-orange-100 text-orange-700">
-            <tr>
-              <th className="p-4">Order ID</th>
-              <th className="p-4">Date</th>
-              <th className="p-4">Items</th>
-              <th className="p-4">Amount (₹)</th>
-              <th className="p-4">Status</th>
-              <th className="p-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedOrders.map((order) => (
-              <tr
-                key={order._id}
-                className="border-t hover:bg-orange-50 transition"
-              >
-                <td className="p-4 font-medium text-orange-600">
-                  <Link
-                    to={`/vendor/orders/${order.orderId}`}
-                    className="hover:underline"
-                  >
-                    {order.orderId}
-                  </Link>
-                </td>
-                <td className="p-4">
-                  {format(new Date(order.date), "yyyy-MM-dd")}
-                </td>
-                <td className="p-4 truncate max-w-xs">
-                  {order.items.map((i) => i.name).join(", ")}
-                </td>
-                <td className="p-4">₹{order.totalAmount}</td>
-                <td
-                  className={`p-4 font-semibold ${
-                    order.status === "Delivered"
-                      ? "text-green-600"
-                      : "text-yellow-600"
-                  }`}
-                >
-                  {order.status}
-                </td>
-                <td className="p-4">
-                  <button
-                    onClick={() => handleReorder(order.items)}
-                    className="text-orange-600 hover:underline"
-                  >
-                    Reorder
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {sortedOrders.length === 0 && (
+      {loading ? (
+        <p className="text-center text-gray-500">Loading orders...</p>
+      ) : (
+        <div className="bg-white shadow rounded-lg overflow-x-auto">
+          <table className="min-w-full text-left">
+            <thead className="bg-orange-100 text-orange-700">
               <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500">
-                  No orders found.
-                </td>
+                <th className="p-4">Order ID</th>
+                <th className="p-4">Date</th>
+                <th className="p-4">Items</th>
+                <th className="p-4">Amount (₹)</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {sortedOrders.map((order) => (
+                <tr
+                  key={order._id}
+                  className="border-t hover:bg-orange-50 transition"
+                >
+                  <td className="p-4 font-medium text-orange-600">
+                    <Link
+                      to={`/vendor/orders/${order._id}`}
+                      className="hover:underline"
+                    >
+                      {order._id.slice(-6).toUpperCase()}
+                    </Link>
+                  </td>
+                  <td className="p-4">
+                    {format(new Date(order.createdAt), "yyyy-MM-dd")}
+                  </td>
+                  <td className="p-4 truncate max-w-xs">
+                    {order.items.map((i) => i.productId?.name).join(", ")}
+                  </td>
+                  <td className="p-4">₹{order.totalAmount}</td>
+                  <td
+                    className={`p-4 font-semibold ${
+                      order.status === "Delivered"
+                        ? "text-green-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    {order.status}
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => handleReorder(order._id)}
+                      className="text-orange-600 hover:underline"
+                    >
+                      Reorder
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {sortedOrders.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-500">
+                    No orders found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

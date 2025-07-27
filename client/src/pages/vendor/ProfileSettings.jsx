@@ -1,40 +1,57 @@
-import React, { useState } from "react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const ProfileSettings = () => {
-  const { user, isLoaded } = useUser();
-  const { user: clerkUser } = useClerk();
-
-  const [name, setName] = useState(user?.fullName || "");
-  const [bio, setBio] = useState(user?.publicMetadata?.bio || "");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/vendor/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const { name, email, bio } = res.data.user;
+        setName(name);
+        setEmail(email);
+        setBio(bio || "");
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
-
     try {
-      // Update fullName
-      await clerkUser.update({ fullName: name });
-
-      // Save additional metadata (like bio)
-      await clerkUser.update({
-        publicMetadata: {
-          bio,
-        },
-      });
-
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/vendor/profile`,
+        { name, bio },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       alert("✅ Profile updated!");
-    } catch (error) {
-      console.error("Update failed:", error);
+    } catch (err) {
+      console.error("Update failed:", err);
       alert("❌ Failed to update profile.");
     }
-
     setSaving(false);
   };
-
-  if (!isLoaded) {
-    return <p className="text-center">Loading profile...</p>;
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
@@ -56,10 +73,10 @@ const ProfileSettings = () => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Email (managed by Clerk)
+            Email
           </label>
           <input
-            value={user?.emailAddresses[0]?.emailAddress || ""}
+            value={email}
             readOnly
             className="mt-1 block w-full border border-gray-200 rounded-md p-2 bg-gray-100 text-gray-600"
           />

@@ -1,19 +1,55 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { orderHistory, products } from "../../data/data";
+import axios from "axios";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 const OrderDetails = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
 
-  const order = orderHistory.find((order) => order.orderId === orderId);
+  // Fetch order details
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/vendor/orders/${orderId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setOrder(res.data.order);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching order:", err);
+        setLoading(false);
+      }
+    };
 
-  const handleReorder = () => {
-    // Simulate reorder action
-    alert(`Reordered ${order.items.length} item(s)!`);
-    // You can replace this with context/localStorage/cart state logic
+    fetchOrder();
+  }, [orderId]);
+
+  const handleReorder = async () => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/orders/${orderId}/reorder`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("✅ Reordered successfully!");
+    } catch (err) {
+      console.error("Error during reorder:", err);
+      alert("❌ Failed to reorder");
+    }
   };
 
   const exportPDF = async () => {
@@ -28,13 +64,12 @@ const OrderDetails = () => {
     pdf.save(`Order_${orderId}.pdf`);
   };
 
-  const getProductImage = (name) => {
-    const match = products.find((p) => p.name === name);
-    return match?.image || "https://via.placeholder.com/80";
-  };
+  if (loading) {
+    return <p className="text-center text-gray-500 mt-10">Loading order...</p>;
+  }
 
   if (!order) {
-    return <p className="text-center text-red-500">Order not found</p>;
+    return <p className="text-center text-red-500 mt-10">Order not found</p>;
   }
 
   return (
@@ -48,7 +83,7 @@ const OrderDetails = () => {
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold text-orange-700">
-          Order #{order.orderId}
+          Order #{order._id.slice(-6).toUpperCase()}
         </h2>
         <div className="flex gap-2">
           <button
@@ -66,7 +101,9 @@ const OrderDetails = () => {
         </div>
       </div>
 
-      <p className="mb-2 text-gray-600">Date: {order.date}</p>
+      <p className="mb-2 text-gray-600">
+        Date: {new Date(order.createdAt).toLocaleDateString()}
+      </p>
       <p className="mb-2 text-gray-600">Status: {order.status}</p>
       <p className="mb-6 text-gray-700 font-semibold">
         Total Amount: ₹{order.totalAmount}
@@ -77,7 +114,7 @@ const OrderDetails = () => {
         <h3 className="text-lg font-medium mb-2">Items:</h3>
         <ul className="space-y-4">
           {order.items.map((item, idx) => {
-            const product = products.find((p) => p.name === item.name);
+            const product = item.productId;
             return (
               <li
                 key={idx}
@@ -85,20 +122,20 @@ const OrderDetails = () => {
               >
                 <div className="flex items-center gap-4">
                   <img
-                    src={getProductImage(item.name)}
-                    alt={item.name}
+                    src={product.image}
+                    alt={product.name}
                     className="w-16 h-16 object-cover rounded"
                   />
                   <Link
-                    to="/vendor/browse"
+                    to={`/vendor/product/${product._id}`}
                     className="text-blue-600 hover:underline"
                   >
-                    {item.name}
+                    {product.name}
                   </Link>
                 </div>
                 <div className="text-gray-700">
-                  {item.quantity} × ₹{item.unitPrice} = ₹
-                  {item.quantity * item.unitPrice}
+                  {item.quantity} × ₹{product.price} = ₹
+                  {item.quantity * product.price}
                 </div>
               </li>
             );
