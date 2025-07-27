@@ -2,31 +2,21 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { clerkMiddleware } = require("@clerk/express");
-const bodyParser = require("body-parser");
 
 dotenv.config();
 
 const app = express();
 
-app.use(
-    "/api/webhooks",
-    bodyParser.raw({ type: "application/json" })
-);
-
 // 🌐 Other middlewares
 app.use(cors());
-app.use(express.json()); // regular body parser for all other routes
-app.use(clerkMiddleware());
+app.use(express.json()); // body parser for all routes
 
 // 🚏 Routes
 const userRoutes = require("./routes/userRoutes");
-const clerkWebhook = require("./routes/clerkWebhook");
 const adminRoutes = require("./routes/adminRoutes");
 
 
 app.use("/api/users", userRoutes);
-app.use("/api/webhooks", clerkWebhook);
 app.use("/api/admin", adminRoutes);
 
 // Optional (for future use)

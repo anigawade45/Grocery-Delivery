@@ -1,9 +1,7 @@
-import { Routes, Route } from "react-router-dom";
-import { Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "../pages/LandingPage";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
-import RoleSelect from "../pages/auth/RoleSelect";
 import VendorDashboard from "../pages/vendor/Dashboard";
 import AdminDashboard from "../pages/admin/Dashboard";
 import ProtectedRoute from "../components/common/ProtectedRoute";
@@ -31,15 +29,15 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/select-role" element={<RoleSelect />} />
+      {/* Remove or update the following if not needed */}
+      {/* <Route path="/select-role" element={<RoleSelect />} /> */}
       <Route path="/pending" element={<Pending />} />
       <Route path="/rejected" element={<Rejected />} />
-      <Route path="/signup/sso-callback" element={<Navigate to="/" />} />
       {/* Vendor Dashboard with nested routes */}
       <Route
         path="/vendor"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["vendor"]}>
             <VendorDashboard />
           </ProtectedRoute>
         }
@@ -51,12 +49,11 @@ const AppRoutes = () => {
         <Route path="orders/:orderId" element={<OrderDetails />} />
         <Route path="product/:productId" element={<ProductDetails />} />
       </Route>
-
       {/* Supplier and Admin Dashboards */}
       <Route
         path="/supplier"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["supplier"]}>
             <SupplierDashboard />
           </ProtectedRoute>
         }
@@ -67,11 +64,10 @@ const AppRoutes = () => {
         <Route path="delivery" element={<DeliveryUpdater />} />
         <Route path="reviews" element={<ReviewManager />} />
       </Route>
-
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <AdminDashboard />
           </ProtectedRoute>
         }

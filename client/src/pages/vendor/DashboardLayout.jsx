@@ -1,11 +1,12 @@
-import React, { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import React, { useState, useContext } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { AuthContext } from "../../context/AppContext"; // ✅ use your context
 
 const DashboardLayout = () => {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext); // ✅ assumes you have logout()
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navLinkClass = ({ isActive }) =>
@@ -19,6 +20,11 @@ const DashboardLayout = () => {
     { to: "/vendor/orders", icon: "📦", label: "Order History" },
     { to: "/vendor/profile", icon: "⚙️", label: "Profile" },
   ];
+
+  const handleLogout = () => {
+    logout(); // your custom logout function
+    navigate("/login"); // redirect to login
+  };
 
   return (
     <div className="flex min-h-screen bg-orange-50 relative">
@@ -64,7 +70,7 @@ const DashboardLayout = () => {
             </NavLink>
           ))}
           <button
-            onClick={() => signOut()}
+            onClick={handleLogout}
             className="text-red-500 hover:text-red-600 text-left"
             title="Logout"
           >
@@ -81,13 +87,8 @@ const DashboardLayout = () => {
         {/* Topbar */}
         <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-800">
-            Welcome,{" "}
-            {user?.firstName ||
-              user?.emailAddresses[0]?.emailAddress ||
-              "Vendor"}
-            !
+            Welcome, {user?.name || user?.email || "Vendor"}!
           </h1>
-          {/* Future: Add profile photo or notification icon here */}
         </header>
 
         {/* Page Content */}

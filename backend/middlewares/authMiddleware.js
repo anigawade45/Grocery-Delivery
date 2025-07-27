@@ -1,29 +1,21 @@
-const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
-// Middleware to fetch user from DB using Clerk ID
-const requireUser = async (req, res, next) => {
+// JWT authentication middleware
+const requireAuth = (req, res, next) => {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "No token provided" });
+    }
     try {
-        const clerkUserId = req.auth?.userId;
-
-        if (!clerkUserId) {
-            return res.status(401).json({ error: "Unauthorized: No Clerk user ID found." });
-        }
-
-        const user = await User.findOne({ clerkId: clerkUserId });
-
-        if (!user) {
-            return res.status(404).json({ error: "User not found in database." });
-        }
-
-        req.user = user; // Attach full user to request object
+        const decoded = jwt.verify(auth.split(" ")[1], process.env.JWT_SECRET);
+        req.user = decoded;
         next();
-    } catch (error) {
-        console.error("Auth error:", error.message);
-        res.status(500).json({ error: "Internal Server Error" });
+    } catch {
+        res.status(401).json({ message: "Invalid token" });
     }
 };
 
-// Middleware to restrict route by role
+// Role-based access control
 const restrictTo = (...roles) => {
     return (req, res, next) => {
         if (!req.user || !roles.includes(req.user.role)) {
@@ -33,4 +25,4 @@ const restrictTo = (...roles) => {
     };
 };
 
-module.exports = { requireUser, restrictTo };
+module.exports = { requireAuth, restrictTo };

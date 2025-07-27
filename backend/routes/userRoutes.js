@@ -1,19 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const {
-    assignUserRole,
+    register,
+    login,
     getAllUsers,
     getUserById,
-    getUserByClerkId,
     updateUserStatus,
 } = require("../controllers/userController");
 
-const { requireUser, restrictTo } = require("../middlewares/authMiddleware");
-router.use(requireUser);
-router.post("/assign-role", assignUserRole);
+const { requireAuth, restrictTo } = require("../middlewares/authMiddleware");
+
+router.post("/register", register);
+router.post("/login", login);
 router.get("/", restrictTo("admin"), getAllUsers);
 router.get("/:id", getUserById);
-router.get("/clerk/:clerkId", getUserByClerkId);
 router.patch("/:id/status", restrictTo("admin"), updateUserStatus);
+
 
 module.exports = router;

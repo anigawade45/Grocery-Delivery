@@ -1,45 +1,50 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const assignUserRole = async (req, res) => {
-    const { clerkId, role, name, email } = req.body;
-
+const register = async (req, res) => {
     try {
-        if (!clerkId || !role || !name || !email) {
-            return res.status(400).json({ success: false, error: "Missing required fields" });
+        const { name, email, password, role, bio, phone } = req.body;
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({ message: "All fields are required" });
         }
+        const existing = await User.findOne({ email });
+        if (existing) return res.status(400).json({ message: "Email already exists" });
 
-        let user = await User.findOne({ clerkId });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({
+            name,
+            email,
+            password: hashedPassword,
+            role,
+            bio,
+            phone,
+        });
 
-        if (user) {
-            // ✅ Update role if user already exists
-            user.role = role;
-            user.status = "pending"; // reset status on new role assign
-            await user.save();
-        } else {
-            // ✅ If not found, try checking by email to avoid duplication
-            user = await User.findOne({ email });
-
-            if (user) {
-                return res.status(409).json({
-                    success: false,
-                    error: "User with this email already exists",
-                });
-            }
-
-            // ✅ Create new user
-            user = await User.create({
-                clerkId,
-                name,
-                email,
-                role,
-                status: "pending",
-            });
-        }
-
-        res.status(200).json({ success: true, user });
+        await user.save();
+        res.status(201).json({ message: "User registered successfully" });
     } catch (err) {
-        console.error("Error assigning user role:", err.message);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ message: err.message });
+    }
+};
+
+const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email }).select("+password");
+        if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+        res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
@@ -64,17 +69,6 @@ const getUserById = async (req, res) => {
     }
 };
 
-// Get user by Clerk ID
-const getUserByClerkId = async (req, res) => {
-    try {
-        const user = await User.findOne({ clerkId: req.params.clerkId });
-        if (!user) return res.status(404).json({ message: "User not found" });
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
 // Admin updates verification status (approve/reject)
 const updateUserStatus = async (req, res) => {
     try {
@@ -92,10 +86,44 @@ const updateUserStatus = async (req, res) => {
     }
 };
 
+// Create default admins if not already present
+const createDefaultAdmins = async () => {
+    const admins = [
+        {
+            name: "Aniket Gawade",
+            email: "anigawade05@gmail.com",
+            password: "12345678",
+            role: "admin",
+            phone: "9049644592",
+            bio: "First admin",
+            status: "approved",
+        },
+        {
+            name: "Admin Two",
+            email: "admin2@example.com",
+            password: "adminpassword2",
+            role: "admin",
+            phone: "9000000002",
+            bio: "Second admin",
+            status: "approved",
+        },
+    ];
+
+    for (const admin of admins) {
+        const existing = await User.findOne({ email: admin.email });
+        if (!existing) {
+            const hashedPassword = await bcrypt.hash(admin.password, 10);
+            await User.create({ ...admin, password: hashedPassword });
+            console.log(`✔ Default admin created: ${admin.email}`);
+        }
+    }
+};
+
 module.exports = {
-    assignUserRole,
+    register,
+    login,
     getAllUsers,
     getUserById,
-    getUserByClerkId,
     updateUserStatus,
+    createDefaultAdmins,
 };

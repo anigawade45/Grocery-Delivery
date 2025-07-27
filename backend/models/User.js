@@ -4,8 +4,8 @@ const userSchema = new mongoose.Schema(
     {
         clerkId: {
             type: String,
-            required: true,
             unique: true,
+            sparse: true // allow null for custom auth users
         },
         name: {
             type: String,
@@ -16,8 +16,16 @@ const userSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        password: {
+            type: String,
+            required: true,
+            minlength: 6,
+            select: false
+        },
         phone: {
             type: String,
+            required: true,
+            unique: true,
         },
         role: {
             type: String,

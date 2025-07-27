@@ -6,11 +6,15 @@ const {
     getPendingSuppliers,
     updateSupplierStatus,
     getReportedReviews,
-    deleteReportedReview,       
+    deleteReportedReview,
     getAllUsers,
-    updateUserStatus
+    updateUserStatus,
+    adminRegister,
 } = require("../controllers/adminController");
 
+// Admin Registration
+router.post("/adminregister", adminRegister);
+// Admin Authentication
 router.use(requireUser, restrictTo("admin"));
 
 // Supplier Verification

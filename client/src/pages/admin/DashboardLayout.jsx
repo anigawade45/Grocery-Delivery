@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import React, { useState, useContext } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { AuthContext } from "../../context/AppContext";
 
 const AdminDashboardLayout = () => {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navLinkClass = ({ isActive }) =>
@@ -19,8 +19,14 @@ const AdminDashboardLayout = () => {
     { to: "/admin/users", icon: "👥", label: "User Management" },
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="flex min-h-screen bg-orange-50 relative">
+      {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
         className="md:hidden absolute top-4 left-4 z-30 text-orange-600"
@@ -28,6 +34,7 @@ const AdminDashboardLayout = () => {
         <Menu size={28} />
       </button>
 
+      {/* Overlay for Mobile */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-40 z-20"
@@ -35,11 +42,13 @@ const AdminDashboardLayout = () => {
         />
       )}
 
+      {/* Sidebar */}
       <aside
         className={`fixed md:static z-30 inset-y-0 left-0 w-64 bg-white border-r shadow-sm p-6 transform transition-transform duration-300 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
+        {/* Close Button */}
         <div className="md:hidden flex justify-end mb-4">
           <button
             onClick={() => setSidebarOpen(false)}
@@ -49,6 +58,7 @@ const AdminDashboardLayout = () => {
           </button>
         </div>
 
+        {/* Nav Links */}
         <nav className="flex flex-col space-y-6 text-md font-medium">
           {navItems.map((item) => (
             <NavLink to={item.to} key={item.to} className={navLinkClass}>
@@ -59,7 +69,7 @@ const AdminDashboardLayout = () => {
             </NavLink>
           ))}
           <button
-            onClick={() => signOut()}
+            onClick={handleLogout}
             className="text-red-500 hover:text-red-600 text-left"
             title="Logout"
           >
@@ -71,16 +81,16 @@ const AdminDashboardLayout = () => {
         </nav>
       </aside>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
+        {/* Header */}
         <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-gray-800">
-            Admin Panel – Welcome,{" "}
-            {user?.firstName ||
-              user?.emailAddresses[0]?.emailAddress ||
-              "Admin"}
-            !
+            Admin Panel – Welcome, {user?.name || user?.email || "Admin"}!
           </h1>
         </header>
+
+        {/* Page Content */}
         <main className="flex-1 px-6 py-8">
           <Outlet />
         </main>

@@ -1,71 +1,143 @@
 import React, { useState } from "react";
-import { SignUp } from "@clerk/clerk-react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useSignUp } from "@clerk/clerk-react";
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState("vendor");
-  const { signUp } = useSignUp();
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "vendor",
+    bio: "",
+    phone: "", // <-- use 'phone' instead of 'mobile'
+  });
+  const [error, setError] = useState("");
 
-  // Set metadata after sign-up is completed
-  const handleOnSignUp = async () => {
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
     try {
-      await signUp.update({
-        publicMetadata: {
-          role: role,
-        },
-      });
-      navigate("/select-role");
+      await axios.post("http://localhost:3000/api/users/register", form);
+      navigate("/login");
     } catch (err) {
-      console.error("Metadata update failed:", err);
+      setError(err.response?.data?.message || "Signup failed");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-orange-50 px-4 py-8">
-      <div className="max-w-xl w-full rounded-xl p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center text-orange-700">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-bold text-center text-orange-700 mb-6">
           Create Your Account
         </h2>
-
-        {/* Role Toggle Buttons */}
-        <div className="flex justify-center gap-4 mb-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Name"
+              required
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="Email"
+              required
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Password"
+              required
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="vendor">Vendor</option>
+              <option value="supplier">Supplier</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mobile Number
+            </label>
+            <input
+              name="phone"
+              type="tel"
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="Mobile Number"
+              required
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bio
+            </label>
+            <textarea
+              name="bio"
+              value={form.bio}
+              onChange={handleChange}
+              placeholder="Tell us about yourself"
+              rows={3}
+              className="w-full px-4 py-2 border border-orange-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+          </div>
           <button
-            className={`px-4 py-2 rounded-md font-semibold border ${
-              role === "vendor"
-                ? "bg-orange-600 text-white"
-                : "bg-white text-orange-600 border-orange-400"
-            }`}
-            onClick={() => setRole("vendor")}
+            type="submit"
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 rounded transition"
           >
-            Vendor
+            Sign Up
           </button>
+          {error && (
+            <div className="text-center text-red-600 text-sm mt-2">{error}</div>
+          )}
+        </form>
+        <div className="text-center mt-4">
+          <span className="text-gray-600 text-sm">
+            Already have an account?
+          </span>
           <button
-            className={`px-4 py-2 rounded-md font-semibold border ${
-              role === "supplier"
-                ? "bg-orange-600 text-white"
-                : "bg-white text-orange-600 border-orange-400"
-            }`}
-            onClick={() => setRole("supplier")}
+            className="ml-2 text-orange-700 hover:underline text-sm"
+            onClick={() => navigate("/login")}
+            type="button"
           >
-            Supplier
+            Login
           </button>
-        </div>
-
-        {/* Clerk SignUp Component */}
-        <div className="flex justify-center">
-          <SignUp
-            path="/signup"
-            routing="path"
-            signInUrl="/login"
-            afterSignUpUrl="/select-role"
-            appearance={{
-              elements: {
-                card: "shadow-none border-none",
-              },
-            }}
-          />
         </div>
       </div>
     </div>

@@ -1,12 +1,11 @@
-import React from "react";
-import { useUser, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Menu } from "lucide-react"; // install via `npm install lucide-react`
-import Logo from "../../assets/logo.jpg"; // Your custom logo
-import { useState } from "react";
+import { Bell, Menu } from "lucide-react";
+import Logo from "../../assets/logo.jpg";
+import { AuthContext } from "../../context/AppContext";
 
 const Navbar = () => {
-  const { user } = useUser();
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -69,24 +68,32 @@ const Navbar = () => {
             </span>
           </button>
 
-          <SignedOut>
-            <button
-              onClick={() => navigate("/login")}
-              className="px-3 py-1 border border-orange-500 rounded text-orange-600 hover:bg-orange-50 text-sm"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate("/signup")}
-              className="px-4 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
-            >
-              Get Started
-            </button>
-          </SignedOut>
-
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          {!user ? (
+            <>
+              <button
+                onClick={() => navigate("/login")}
+                className="px-3 py-1 border border-orange-500 rounded text-orange-600 hover:bg-orange-50 text-sm"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => navigate("/signup")}
+                className="px-4 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
+              >
+                Get Started
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-700">{user.name || "Welcome"}</p>
+              <button
+                onClick={logout}
+                className="px-3 py-1 border border-red-500 rounded text-red-600 hover:bg-red-50 text-sm"
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -119,24 +126,34 @@ const Navbar = () => {
           </button>
 
           <div className="mt-4 flex flex-col space-y-2">
-            <SignedOut>
-              <button
-                onClick={() => navigate("/login")}
-                className="w-full px-3 py-2 border border-orange-500 rounded text-orange-600 hover:bg-orange-50 text-sm"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigate("/signup")}
-                className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
-              >
-                Get Started
-              </button>
-            </SignedOut>
-
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+            {!user ? (
+              <>
+                <button
+                  onClick={() => navigate("/login")}
+                  className="w-full px-3 py-2 border border-orange-500 rounded text-orange-600 hover:bg-orange-50 text-sm"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => navigate("/signup")}
+                  className="w-full px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm"
+                >
+                  Get Started
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-700">
+                  {user.name || "Welcome"}
+                </p>
+                <button
+                  onClick={logout}
+                  className="w-full px-3 py-2 border border-red-500 rounded text-red-600 hover:bg-red-50 text-sm"
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
