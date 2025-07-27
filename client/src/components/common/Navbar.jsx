@@ -9,6 +9,42 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const isAdmin = user?.role === "admin";
+  const isSupplier = user?.role === "supplier";
+  const isVendor = user?.role === "vendor";
+
+  const commonLinks = [
+    
+    { path: "/how-it-works", label: "How It Works" },
+    { path: "/support", label: "Support" },
+  ];
+
+  const roleLinks = isAdmin
+    ? [{ path: "/admin", label: "Admin Dashboard" }]
+    : isSupplier
+    ? [{ path: "/supplier", label: "Supplier Panel" }]
+    : isVendor
+    ? [{ path: "/vendor", label: "Vendor Panel" }]
+    : [];
+
+  const notifications = isAdmin ? 5 : isSupplier ? 3 : isVendor ? 1 : 0;
+
+  const renderLinks = (links, isMobile = false) =>
+    links.map((link) => (
+      <button
+        key={link.path}
+        onClick={() => {
+          navigate(link.path);
+          setIsMenuOpen(false);
+        }}
+        className={`${
+          isMobile ? "block w-full text-left py-1" : "hover:text-orange-700"
+        } text-gray-700`}
+      >
+        {link.label}
+      </button>
+    ));
+
   return (
     <header className="w-full border-b bg-white px-6 py-3 shadow-sm sticky top-0 z-50">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -33,40 +69,21 @@ const Navbar = () => {
 
         {/* Center Nav Items */}
         <nav className="hidden md:flex items-center space-x-6 text-sm text-gray-700">
-          <button
-            onClick={() => navigate("/suppliers")}
-            className="hover:text-orange-700"
-          >
-            Browse Suppliers
-          </button>
-          <button
-            onClick={() => navigate("/categories")}
-            className="hover:text-orange-700"
-          >
-            Categories
-          </button>
-          <button
-            onClick={() => navigate("/how-it-works")}
-            className="hover:text-orange-700"
-          >
-            How It Works
-          </button>
-          <button
-            onClick={() => navigate("/support")}
-            className="hover:text-orange-700"
-          >
-            Support
-          </button>
+          {renderLinks([...roleLinks, ...commonLinks])}
         </nav>
 
         {/* Right Actions */}
         <div className="hidden md:flex items-center space-x-4">
-          <button className="relative">
-            <Bell className="h-5 w-5 text-gray-700" />
-            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-              3
-            </span>
-          </button>
+          {user && (
+            <button className="relative">
+              <Bell className="h-5 w-5 text-gray-700" />
+              {notifications > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {notifications}
+                </span>
+              )}
+            </button>
+          )}
 
           {!user ? (
             <>
@@ -85,7 +102,9 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <p className="text-sm text-gray-700">{user.name || "Welcome"}</p>
+              <p className="text-sm text-gray-700">
+                {user.name || user.email || "Welcome"}
+              </p>
               <button
                 onClick={logout}
                 className="px-3 py-1 border border-red-500 rounded text-red-600 hover:bg-red-50 text-sm"
@@ -100,30 +119,18 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden mt-4 space-y-2 px-4 pb-4">
-          <button
-            onClick={() => navigate("/suppliers")}
-            className="block w-full text-left py-1 text-gray-700 hover:text-orange-700"
-          >
-            Browse Suppliers
-          </button>
-          <button
-            onClick={() => navigate("/categories")}
-            className="block w-full text-left py-1 text-gray-700 hover:text-orange-700"
-          >
-            Categories
-          </button>
-          <button
-            onClick={() => navigate("/how-it-works")}
-            className="block w-full text-left py-1 text-gray-700 hover:text-orange-700"
-          >
-            How It Works
-          </button>
-          <button
-            onClick={() => navigate("/support")}
-            className="block w-full text-left py-1 text-gray-700 hover:text-orange-700"
-          >
-            Support
-          </button>
+          {renderLinks([...roleLinks, ...commonLinks], true)}
+
+          {user && (
+            <div className="flex items-center gap-2 mt-3">
+              <Bell className="h-5 w-5 text-gray-700" />
+              {notifications > 0 && (
+                <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  {notifications} new
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 flex flex-col space-y-2">
             {!user ? (
@@ -142,17 +149,12 @@ const Navbar = () => {
                 </button>
               </>
             ) : (
-              <>
-                <p className="text-sm text-gray-700">
-                  {user.name || "Welcome"}
-                </p>
-                <button
-                  onClick={logout}
-                  className="w-full px-3 py-2 border border-red-500 rounded text-red-600 hover:bg-red-50 text-sm"
-                >
-                  Logout
-                </button>
-              </>
+              <button
+                onClick={logout}
+                className="w-full px-3 py-2 border border-red-500 rounded text-red-600 hover:bg-red-50 text-sm"
+              >
+                Logout
+              </button>
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const BrowseProducts = () => {
   const [products, setProducts] = useState([]);
@@ -28,6 +29,7 @@ const BrowseProducts = () => {
         setProducts(res.data.products || []);
       } catch (err) {
         console.error("Failed to fetch products:", err);
+        toast.error("Failed to fetch products");
       } finally {
         setLoading(false);
       }
@@ -101,10 +103,10 @@ const BrowseProducts = () => {
           },
         }
       );
-      alert(`${product.name} added to cart!`);
+      toast.success(`${product.name} added to cart!`);
     } catch (err) {
       console.error("Error adding to cart:", err.response?.data || err.message);
-      alert("❌ Failed to add to cart");
+      toast.error("Failed to add to cart");
     }
   };
 
@@ -194,7 +196,7 @@ const BrowseProducts = () => {
               className="bg-white rounded-lg shadow hover:shadow-md transition p-4"
             >
               <img
-                src={product.image}
+                src={product.image?.url}
                 alt={product.name}
                 className="w-full h-40 object-cover rounded"
               />

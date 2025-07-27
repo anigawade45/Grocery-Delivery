@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Star } from "lucide-react";
+import { toast } from "react-toastify";
 
 const ProductDetails = () => {
   const { productId } = useParams();
@@ -57,10 +58,10 @@ const ProductDetails = () => {
           },
         }
       );
-      alert("✅ Product added to cart!");
+      toast.success("✅ Product added to cart!");
     } catch (err) {
       console.error("Add to cart failed:", err);
-      alert("❌ Failed to add to cart");
+      toast.error("❌ Failed to add to cart");
     } finally {
       setAdding(false);
     }
@@ -90,7 +91,7 @@ const ProductDetails = () => {
       <div className="flex flex-col lg:flex-row gap-8 bg-white rounded-lg shadow p-6">
         {/* Product Image */}
         <img
-          src={product.image}
+          src={product.image?.url}
           alt={product.name}
           className="w-full lg:w-1/2 h-64 object-cover rounded"
         />

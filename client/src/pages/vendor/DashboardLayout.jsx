@@ -1,11 +1,12 @@
 import React, { useState, useContext } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { AuthContext } from "../../context/AppContext"; // ✅ use your context
+import { AuthContext } from "../../context/AppContext";
+import { toast } from "react-toastify"; // ✅ toast import
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext); // ✅ assumes you have logout()
+  const { user, logout } = useContext(AuthContext);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -22,8 +23,9 @@ const DashboardLayout = () => {
   ];
 
   const handleLogout = () => {
-    logout(); // your custom logout function
-    navigate("/login"); // redirect to login
+    logout();
+    toast.success("👋 Logged out successfully!");
+    navigate("/login");
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const OrderHistory = () => {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,7 @@ const OrderHistory = () => {
   const token = localStorage.getItem("token");
 
   const fetchOrders = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/vendor/orders`,
@@ -22,6 +24,7 @@ const OrderHistory = () => {
       setOrders(res.data.orders);
     } catch (err) {
       console.error("Error fetching orders:", err);
+      toast.error("Failed to fetch orders");
     } finally {
       setLoading(false);
     }
@@ -36,10 +39,10 @@ const OrderHistory = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert("✅ Reordered successfully!");
+      toast.success("✅ Reordered successfully!");
     } catch (err) {
       console.error("Error during reorder:", err);
-      alert("❌ Failed to reorder");
+      toast.error("❌ Failed to reorder");
     }
   };
 

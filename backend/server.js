@@ -24,12 +24,14 @@ const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/supplier", supplierRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Optional (for future use)
 // const productRoutes = require("./routes/product.routes");

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const ProfileSettings = () => {
   const [name, setName] = useState("");
@@ -26,6 +27,7 @@ const ProfileSettings = () => {
         setBio(bio || "");
       } catch (err) {
         console.error("Failed to fetch profile:", err);
+        toast.error("Failed to load profile.");
       }
     };
 
@@ -45,10 +47,10 @@ const ProfileSettings = () => {
           },
         }
       );
-      alert("✅ Profile updated!");
+      toast.success("✅ Profile updated!");
     } catch (err) {
       console.error("Update failed:", err);
-      alert("❌ Failed to update profile.");
+      toast.error("❌ Failed to update profile.");
     }
     setSaving(false);
   };

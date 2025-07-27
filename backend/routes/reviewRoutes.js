@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const reviewController = require('../controllers/reviewController');
+const { requireAuth } = require("../middlewares/authMiddleware");
 
+router.use(requireAuth);
 router.post('/reviews', reviewController.postReviewThroughOrderId);
 router.get('/reviews/supplier/:id', reviewController.getReviewsForSupplier);
 router.put('/reviews/:id/reply', reviewController.supplierReplyToReview);

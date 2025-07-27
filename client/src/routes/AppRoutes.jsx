@@ -22,6 +22,7 @@ import ProductManager from "../pages/supplier/ProductManager";
 import ProductList from "../pages/supplier/ProductList";
 import Pending from "../pages/auth/Pending";
 import Rejected from "../pages/auth/Rejected";
+import VendorDashboardHome from "../pages/vendor/VendorDashboardHome";
 
 const AppRoutes = () => {
   return (
@@ -34,6 +35,7 @@ const AppRoutes = () => {
       <Route path="/pending" element={<Pending />} />
       <Route path="/rejected" element={<Rejected />} />
       {/* Vendor Dashboard with nested routes */}
+      {/* Vendor Dashboard with nested routes */}
       <Route
         path="/vendor"
         element={
@@ -42,6 +44,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
+        <Route path="dashboard" element={<VendorDashboardHome />} />
+
         <Route path="browse" element={<BrowseProducts />} />
         <Route path="cart" element={<Cart />} />
         <Route path="orders" element={<OrderHistory />} />

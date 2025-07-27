@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify"; // ✅ import toast
 
 const Cart = () => {
   const [cart, setCart] = useState(null);
@@ -18,11 +19,12 @@ const Cart = () => {
         }
       );
       setCart(res.data.cart);
-      setLoading(false); // set loading false here
     } catch (err) {
       console.error("Error fetching cart:", err);
+      toast.error("❌ Failed to fetch cart");
       setCart({ items: [] });
-      setLoading(false); // even on error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,9 +45,10 @@ const Cart = () => {
           },
         }
       );
-      fetchCart(); // Refresh cart
+      fetchCart();
     } catch (err) {
       console.error("Error updating quantity:", err);
+      toast.error("❌ Failed to update quantity");
     }
   };
 
@@ -60,9 +63,11 @@ const Cart = () => {
           },
         }
       );
-      fetchCart(); // Refresh cart
+      toast.success(`🗑️ Removed item from cart`);
+      fetchCart();
     } catch (err) {
       console.error("Error removing item:", err);
+      toast.error("❌ Failed to remove item");
     }
   };
 
@@ -71,18 +76,18 @@ const Cart = () => {
       const token = localStorage.getItem("token");
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/vendor/order`,
-        {}, // body (empty in this case)
+        {},
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      alert("✅ Order placed successfully!");
-      fetchCart(); // Clear cart
+      toast.success("✅ Order placed successfully!");
+      fetchCart();
     } catch (err) {
       console.error("Error placing order:", err);
-      alert("❌ Failed to place order");
+      toast.error("❌ Failed to place order");
     }
   };
 
@@ -140,7 +145,7 @@ const Cart = () => {
                 className="flex flex-col sm:flex-row items-center gap-4 bg-white shadow-md rounded-lg p-4"
               >
                 <img
-                  src={product.image}
+                  src={product.image?.url}
                   alt={product.name}
                   className="w-32 h-24 object-cover rounded"
                 />
