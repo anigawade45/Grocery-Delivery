@@ -1,62 +1,139 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PlusCircle, Trash2, Edit } from "lucide-react";
-
-const initialProducts = [
-  {
-    id: 1,
-    name: "Tomato",
-    price: 25,
-    stock: 100,
-    description: "Fresh farm tomatoes",
-  },
-  {
-    id: 2,
-    name: "Paneer",
-    price: 240,
-    stock: 20,
-    description: "Homemade soft paneer",
-  },
-];
+import axios from "axios";
 
 export default function ProductManager() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name: "",
     price: "",
     stock: "",
     description: "",
+    category: "",
+    unit: "",
+    image: null,
   });
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
+
+  const token = localStorage.getItem("token"); // assumes login stores JWT
+
+  // Fetch supplier products on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/supplier/products`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setProducts(res.data.products);
+      } catch (err) {
+        console.error("Error fetching products", err);
+      }
+    };
+    fetchProducts();
+  }, [token]);
 
   const handleChange = (e) => {
-    setNewProduct({ ...newProduct, [e.target.name]: e.target.value });
-  };
-
-  const addProduct = () => {
-    if (!newProduct.name || !newProduct.price) return;
-    const updated = [...products];
-    if (editIndex !== null) {
-      updated[editIndex] = { ...newProduct, id: updated[editIndex].id };
-      setEditIndex(null);
+    const { name, value, files } = e.target;
+    if (name === "image") {
+      setNewProduct((prev) => ({ ...prev, image: files[0] }));
     } else {
-      updated.push({ ...newProduct, id: Date.now() });
+      setNewProduct((prev) => ({ ...prev, [name]: value }));
     }
-    setProducts(updated);
-    setNewProduct({ name: "", price: "", stock: "", description: "" });
   };
 
-  const deleteProduct = (id) => {
-    setProducts(products.filter((p) => p.id !== id));
+  const handleSubmit = async () => {
+    try {
+      const formData = new FormData();
+      Object.entries(newProduct).forEach(([key, value]) =>
+        formData.append(key, value)
+      );
+
+      if (editId) {
+        await axios.patch(
+          `${import.meta.env.VITE_API_URL}/api/supplier/products/${editId}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      } else {
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/supplier/products`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      }
+
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/supplier/products`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setProducts(res.data.products);
+      resetForm();
+    } catch (err) {
+      console.error("Error saving product", err);
+    }
   };
 
-  const editProduct = (index) => {
-    setNewProduct(products[index]);
-    setEditIndex(index);
+  const deleteProduct = async (id) => {
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/supplier/products/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setProducts(products.filter((p) => p._id !== id));
+    } catch (err) {
+      console.error("Error deleting product", err);
+    }
+  };
+
+  const editProduct = (product) => {
+    setNewProduct({
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      description: product.description,
+      category: product.category,
+      unit: product.unit,
+      image: null,
+    });
+    setEditId(product._id);
+  };
+
+  const resetForm = () => {
+    setNewProduct({
+      name: "",
+      price: "",
+      stock: "",
+      description: "",
+      category: "",
+      unit: "",
+      image: null,
+    });
+    setEditId(null);
   };
 
   return (
     <div className="p-6 bg-white rounded shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Manage Products</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {editId ? "Edit Product" : "Add New Product"}
+      </h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input
           name="name"
@@ -68,17 +145,31 @@ export default function ProductManager() {
         <input
           name="price"
           placeholder="Price (₹)"
+          type="number"
           value={newProduct.price}
           onChange={handleChange}
-          type="number"
           className="p-2 border rounded"
         />
         <input
           name="stock"
-          placeholder="Stock (kg/ltr)"
+          placeholder="Stock"
+          type="number"
           value={newProduct.stock}
           onChange={handleChange}
-          type="number"
+          className="p-2 border rounded"
+        />
+        <input
+          name="unit"
+          placeholder="Unit (kg/ltr)"
+          value={newProduct.unit}
+          onChange={handleChange}
+          className="p-2 border rounded"
+        />
+        <input
+          name="category"
+          placeholder="Category"
+          value={newProduct.category}
+          onChange={handleChange}
           className="p-2 border rounded"
         />
         <input
@@ -86,37 +177,46 @@ export default function ProductManager() {
           placeholder="Description"
           value={newProduct.description}
           onChange={handleChange}
-          className="p-2 border rounded"
+          className="p-2 border rounded col-span-full"
+        />
+        <input
+          name="image"
+          type="file"
+          accept="image/*"
+          onChange={handleChange}
+          className="col-span-full"
         />
         <button
-          onClick={addProduct}
+          onClick={handleSubmit}
           className="col-span-full bg-orange-600 text-white py-2 px-4 rounded hover:bg-orange-700 flex items-center justify-center gap-2"
         >
           <PlusCircle className="w-5 h-5" />
-          {editIndex !== null ? "Update Product" : "Add Product"}
+          {editId ? "Update Product" : "Add Product"}
         </button>
       </div>
 
       <div className="mt-6 space-y-3">
-        {products.map((product, index) => (
+        {products.map((product) => (
           <div
-            key={product.id}
+            key={product._id}
             className="border p-4 rounded flex justify-between items-center"
           >
             <div>
               <h3 className="font-semibold">{product.name}</h3>
-              <p className="text-sm text-gray-600">₹{product.price} | Stock: {product.stock}</p>
+              <p className="text-sm text-gray-600">
+                ₹{product.price} | Stock: {product.stock} {product.unit}
+              </p>
               <p className="text-sm text-gray-500">{product.description}</p>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => editProduct(index)}
+                onClick={() => editProduct(product)}
                 className="text-blue-600 hover:underline"
               >
                 <Edit className="w-5 h-5" />
               </button>
               <button
-                onClick={() => deleteProduct(product.id)}
+                onClick={() => deleteProduct(product._id)}
                 className="text-red-600 hover:underline"
               >
                 <Trash2 className="w-5 h-5" />

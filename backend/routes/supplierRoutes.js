@@ -1,12 +1,33 @@
-const express = require('express');
-const router = express.Router();
-const supplierController = require('../controllers/supplierController');
+const express = require("express");
 
-router.post('/supplier/products', supplierController.addNewProduct);
-router.get('/supplier/products/:supplierId', supplierController.listProducts);
-router.put('/supplier/products/:id', supplierController.editProductById);
-router.delete('/supplier/products/:id', supplierController.deleteProductById);
-router.get('/supplier/orders/:supplierId', supplierController.listIncomingOrders);
-router.put('/supplier/orders/:id/status', supplierController.updateOrderStatusById);
+const router = express.Router();
+const {
+    getMyProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    getMyOrders,
+    updateOrderStatus,
+    getMyReviews,
+} = require("../controllers/supplierController");
+const { requireAuth, upload } = require("../middlewares/authMiddleware");
+
+// Product Management
+router.get("/products", requireAuth, getMyProducts);
+router.post(
+    "/products",
+    requireAuth,
+    upload.single("image"),
+    addProduct
+);
+router.patch("/products/:id", requireAuth, upload.single("image"), updateProduct);
+router.delete("/products/:id", requireAuth, deleteProduct);
+
+// Order Management
+router.get("/orders", requireAuth, getMyOrders);
+router.patch("/orders/:id/status", requireAuth, updateOrderStatus);
+
+// Reviews
+router.get("/reviews", requireAuth, getMyReviews);
 
 module.exports = router;

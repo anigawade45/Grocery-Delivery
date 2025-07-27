@@ -23,11 +23,13 @@ app.use(express.json()); // body parser for all routes
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
+const supplierRoutes = require("./routes/supplierRoutes");
 
 
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
+app.use("/api/supplier", supplierRoutes);
 
 // Optional (for future use)
 // const productRoutes = require("./routes/product.routes");
