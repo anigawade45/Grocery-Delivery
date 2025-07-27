@@ -1,12 +1,6 @@
 const mongoose = require("mongoose");
-
 const userSchema = new mongoose.Schema(
     {
-        clerkId: {
-            type: String,
-            unique: true,
-            sparse: true // allow null for custom auth users
-        },
         name: {
             type: String,
             required: true,
@@ -36,6 +30,11 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ["pending", "approved", "rejected"],
             default: "pending",
+        },
+        accountStatus: {
+            type: String,
+            enum: ["active", "blocked"],
+            default: "active",
         },
         bio: {
             type: String,

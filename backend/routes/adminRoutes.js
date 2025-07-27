@@ -10,16 +10,18 @@ const {
     getAllUsers,
     updateUserStatus,
     adminRegister,
+    getSupplierDetails
 } = require("../controllers/adminController");
 
 // Admin Registration
 router.post("/adminregister", adminRegister);
-// Admin Authentication
+// 
 router.use(requireUser, restrictTo("admin"));
 
 // Supplier Verification
 router.get("/suppliers", getPendingSuppliers);
-router.patch("/suppliers/:id", updateSupplierStatus);
+router.patch("/supplier/:id", updateSupplierStatus);
+router.get("/suppliers/:id", getSupplierDetails);
 
 // Reported Reviews
 router.get("/reported-reviews", getReportedReviews);
@@ -28,5 +30,7 @@ router.delete("/reported-reviews/:id", deleteReportedReview);
 // User Management
 router.get("/users", getAllUsers);
 router.patch("/users/:id", updateUserStatus);
+
+
 
 module.exports = router;
