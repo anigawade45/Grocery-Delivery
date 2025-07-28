@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { toast } from "react-toastify"; // ✅ import toast
+import { toast } from "react-toastify";
 
 const Cart = () => {
   const [cart, setCart] = useState(null);
@@ -21,7 +21,7 @@ const Cart = () => {
       setCart(res.data.cart);
     } catch (err) {
       console.error("Error fetching cart:", err);
-      toast.error("❌ Failed to fetch cart");
+      toast.error("Failed to fetch cart");
       setCart({ items: [] });
     } finally {
       setLoading(false);
@@ -32,8 +32,14 @@ const Cart = () => {
     fetchCart();
   }, []);
 
-  const handleQuantityChange = async (productId, newQty) => {
+  const handleQuantityChange = async (
+    productId,
+    newQty,
+    productName,
+    currentQty
+  ) => {
     if (newQty < 1) return;
+
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
@@ -45,10 +51,17 @@ const Cart = () => {
           },
         }
       );
+
+      if (newQty > currentQty) {
+        toast.success(`Added one more of "${productName}" to your cart.`);
+      } else if (newQty < currentQty) {
+        toast.info(`Removed one "${productName}" from your cart.`);
+      }
+
       fetchCart();
     } catch (err) {
       console.error("Error updating quantity:", err);
-      toast.error("❌ Failed to update quantity");
+      toast.error("Failed to update quantity.");
     }
   };
 
@@ -63,17 +76,18 @@ const Cart = () => {
           },
         }
       );
-      toast.success(`🗑️ Removed item from cart`);
+      toast.success("🗑️ Item removed from cart");
       fetchCart();
     } catch (err) {
       console.error("Error removing item:", err);
-      toast.error("❌ Failed to remove item");
+      toast.error("Failed to remove item");
     }
   };
 
   const handlePlaceOrder = async () => {
     try {
       const token = localStorage.getItem("token");
+
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/vendor/order`,
         {},
@@ -83,11 +97,11 @@ const Cart = () => {
           },
         }
       );
-      toast.success("✅ Order placed successfully!");
+      toast.success("Order placed successfully!");
       fetchCart();
     } catch (err) {
       console.error("Error placing order:", err);
-      toast.error("❌ Failed to place order");
+      toast.error("Failed to place order");
     }
   };
 
@@ -123,7 +137,7 @@ const Cart = () => {
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4">
-      <h2 className="text-3xl font-semibold text-orange-700 mb-8">Your Cart</h2>
+      <h2 className="text-3xl font-bold text-orange-700 mb-8">Your Cart</h2>
 
       {cart?.items?.length === 0 ? (
         <div className="text-center text-gray-500">
@@ -145,9 +159,10 @@ const Cart = () => {
                 className="flex flex-col sm:flex-row items-center gap-4 bg-white shadow-md rounded-lg p-4"
               >
                 <img
-                  src={product.image?.url}
+                  src={product.image?.url || "/fallback.jpg"}
+                  onError={(e) => (e.currentTarget.src = "/fallback.jpg")}
                   alt={product.name}
-                  className="w-32 h-24 object-cover rounded"
+                  className="w-32 h-24 object-cover rounded border"
                 />
                 <div className="flex-1 text-left">
                   <h3 className="text-lg font-semibold text-gray-800">
@@ -156,27 +171,42 @@ const Cart = () => {
                   <p className="text-sm text-gray-500">
                     Supplier: {product.supplierId?.name}
                   </p>
-                  <p className="text-orange-600 font-semibold">
-                    ₹{product.price} × {item.quantity} = ₹
-                    {product.price * item.quantity}
+                  <p className="text-orange-600 font-medium">
+                    ₹{product.price} × {item.quantity} ={" "}
+                    <span className="font-semibold">
+                      ₹{product.price * item.quantity}
+                    </span>
                   </p>
                 </div>
 
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() =>
-                      handleQuantityChange(product._id, item.quantity - 1)
+                      handleQuantityChange(
+                        product._id,
+                        item.quantity - 1,
+                        product.name,
+                        item.quantity
+                      )
                     }
-                    className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
+                    className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg disabled:opacity-50"
+                    disabled={item.quantity <= 1}
+                    aria-label="Decrease quantity"
                   >
                     −
                   </button>
                   <span className="px-2 font-medium">{item.quantity}</span>
                   <button
                     onClick={() =>
-                      handleQuantityChange(product._id, item.quantity + 1)
+                      handleQuantityChange(
+                        product._id,
+                        item.quantity + 1,
+                        product.name,
+                        item.quantity
+                      )
                     }
                     className="bg-orange-200 text-orange-700 px-3 py-1 rounded-full text-lg"
+                    aria-label="Increase quantity"
                   >
                     +
                   </button>
@@ -192,15 +222,17 @@ const Cart = () => {
             );
           })}
 
-          {/* Summary */}
-          <div className="text-right mt-8">
-            <p className="text-lg font-semibold text-gray-700">
+          {/* Order Summary */}
+          <div className="text-right mt-10 border-t pt-6">
+            <p className="text-xl font-semibold text-gray-700">
               Total:{" "}
-              <span className="text-orange-700 font-bold">₹{totalAmount}</span>
+              <span className="text-orange-700 font-bold">
+                ₹{totalAmount.toLocaleString()}
+              </span>
             </p>
             <button
               onClick={handlePlaceOrder}
-              className="mt-4 bg-orange-600 text-white px-6 py-3 rounded hover:bg-orange-700 transition"
+              className="mt-4 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition disabled:opacity-60"
             >
               Place Order
             </button>

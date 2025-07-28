@@ -1,100 +1,60 @@
-import React, { useState, useContext } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import React, { useContext } from "react";
+import { NavLink, Outlet } from "react-router-dom";
+import {
+  ShoppingCart,
+  LayoutDashboard,
+  ShoppingBasket,
+  Package,
+  User,
+} from "lucide-react";
 import { AuthContext } from "../../context/AppContext";
-import { toast } from "react-toastify"; // ✅ toast import
 
 const DashboardLayout = () => {
-  const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
-
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const navLinkClass = ({ isActive }) =>
-    isActive
-      ? "text-orange-600 font-semibold"
-      : "text-gray-700 hover:text-orange-500 transition";
+  const { user } = useContext(AuthContext);
 
   const navItems = [
-    { to: "/vendor/browse", icon: "🍲", label: "Browse Products" },
-    { to: "/vendor/cart", icon: "🛒", label: "My Cart" },
-    { to: "/vendor/orders", icon: "📦", label: "Order History" },
-    { to: "/vendor/profile", icon: "⚙️", label: "Profile" },
+    { to: "/vendor/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/vendor/browse", icon: ShoppingBasket, label: "Browse Products" },
+    { to: "/vendor/cart", icon: ShoppingCart, label: "My Cart" },
+    { to: "/vendor/orders", icon: Package, label: "Order History" },
+    { to: "/vendor/profile", icon: User, label: "Profile" },
   ];
 
-  const handleLogout = () => {
-    logout();
-    toast.success("👋 Logged out successfully!");
-    navigate("/login");
-  };
-
   return (
-    <div className="flex min-h-screen bg-orange-50 relative">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(true)}
-        className="md:hidden absolute top-4 left-4 z-30 text-orange-600"
-      >
-        <Menu size={28} />
-      </button>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-40 z-20"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
+    <div className="flex bg-orange-50 min-h-screen">
       {/* Sidebar */}
-      <aside
-        className={`fixed md:static z-30 inset-y-0 left-0 w-64 bg-white border-r shadow-sm p-6 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Close Button for mobile */}
-        <div className="md:hidden flex justify-end mb-4">
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="text-gray-600"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <nav className="flex flex-col space-y-6 text-md font-medium">
-          {navItems.map((item) => (
-            <NavLink to={item.to} key={item.to} className={navLinkClass}>
-              <div className="flex items-center gap-2" title={item.label}>
-                <span>{item.icon}</span>
-                <span className="hidden md:inline">{item.label}</span>
-              </div>
+      <aside className="w-16 md:w-64 bg-white border-r shadow-md flex flex-col justify-between py-6 min-h-screen sticky top-0">
+        <nav className="flex flex-col gap-2 px-2 mt-4">
+          {navItems.map(({ to, icon: Icon, label }, index) => (
+            <NavLink
+              key={index}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? "bg-orange-100 text-orange-600"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-orange-500"
+                }`
+              }
+            >
+              <Icon className="h-5 w-5 md:h-6 md:w-6 transition-all duration-200" />
+              <span className="hidden md:inline">{label}</span>
             </NavLink>
           ))}
-          <button
-            onClick={handleLogout}
-            className="text-red-500 hover:text-red-600 text-left"
-            title="Logout"
-          >
-            <div className="flex items-center gap-2">
-              <span>🚪</span>
-              <span className="hidden md:inline">Logout</span>
-            </div>
-          </button>
         </nav>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-0">
         {/* Topbar */}
-        <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+        <header className="bg-white shadow px-6 py-4">
           <h1 className="text-lg font-semibold text-gray-800">
             Welcome, {user?.name || user?.email || "Vendor"}!
           </h1>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 px-6 py-8">
+        <main className="flex-1 px-4 md:px-6 py-8 bg-orange-50">
           <Outlet />
         </main>
       </div>

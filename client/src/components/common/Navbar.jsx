@@ -24,7 +24,7 @@ const Navbar = () => {
     : isSupplier
     ? [{ path: "/supplier", label: "Supplier Panel" }]
     : isVendor
-    ? [{ path: "/vendor", label: "Vendor Panel" }]
+    ? [{ path: "/vendor/dashboard", label: "Vendor Panel" }]
     : [];
 
   const notifications = isAdmin ? 5 : isSupplier ? 3 : isVendor ? 1 : 0;
