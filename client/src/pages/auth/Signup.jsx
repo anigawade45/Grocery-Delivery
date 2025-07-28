@@ -21,7 +21,14 @@ const SignupPage = () => {
     e.preventDefault();
     setError("");
     try {
-      await axios.post("http://localhost:3000/api/users/register", form);
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/users/register`,
+        form,
+        {
+          withCredentials: true,
+        }
+      );
+
       navigate("/login");
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed");

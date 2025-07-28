@@ -7,15 +7,16 @@ dotenv.config();
 
 const app = express();
 
-// 🌐 Other middlewares
-app.use(cors());
-
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL, // frontend origin
-        credentials: true, // allow cookies/headers
+        origin: [
+            "https://grocery-delivery-wheat.vercel.app",
+            "http://localhost:5173"
+        ],
+        credentials: true,
     })
 );
+
 
 app.use(express.json()); // body parser for all routes
 
