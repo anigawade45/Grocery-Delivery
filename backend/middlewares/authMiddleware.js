@@ -19,9 +19,6 @@ const requireAuth = (req, res, next) => {
             role: decoded.role,
         };
 
-        console.log("Authenticated user:", req.user);
-        console.log("Decoded token:", decoded);
-
         next();
     } catch (err) {
         console.error("JWT decode error:", err.message);

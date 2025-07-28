@@ -14,9 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(
     () => localStorage.getItem("token") || null
   );
-
-  console.log("AuthProvider initialized with user:", user);
-  console.log("AuthProvider initialized with token:", token);
+  // Check if user and token are valid
   const isAuthenticated = !!user && !!token;
 
   const login = (userData, tokenValue) => {
