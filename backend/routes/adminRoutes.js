@@ -14,23 +14,20 @@ const {
 } = require("../controllers/adminController");
 
 // Admin Registration
-router.post("/adminregister", adminRegister);
-// 
-router.use(requireUser, restrictTo("admin"));
+router.post("/adminregister", adminRegister); // Register a new admin
+router.use(requireUser, restrictTo("admin")); // Ensure all routes below require admin privileges
 
 // Supplier Verification
-router.get("/suppliers", getPendingSuppliers);
-router.patch("/supplier/:id", updateSupplierStatus);
-router.get("/suppliers/:id", getSupplierDetails);
+router.get("/suppliers", getPendingSuppliers); // Get all pending suppliers
+router.patch("/supplier/:id", updateSupplierStatus); // Update supplier status (approve/reject)
+router.get("/suppliers/:id", getSupplierDetails); // Get details of a specific supplier
 
 // Reported Reviews
-router.get("/reported-reviews", getReportedReviews);
-router.delete("/reported-reviews/:id", deleteReportedReview);
+router.get("/reported-reviews", getReportedReviews); // Get all reported reviews
+router.delete("/reported-reviews/:id", deleteReportedReview); // Delete a reported review
 
 // User Management
-router.get("/users", getAllUsers);
-router.patch("/users/:id", updateUserStatus);
-
-
+router.get("/users", getAllUsers); // Get all users
+router.patch("/users/:id", updateUserStatus); // Update user status (activate/deactivate)
 
 module.exports = router;

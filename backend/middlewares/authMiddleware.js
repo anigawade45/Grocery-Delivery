@@ -3,7 +3,10 @@ const multer = require("multer");
 const { cloudinary, storage } = require("../config/cloudinary");
 
 // Middleware to check if the user is authenticated
-const upload = multer({ storage });
+const upload = multer(
+    {
+        storage
+    });
 const requireAuth = (req, res, next) => {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith("Bearer ")) {
