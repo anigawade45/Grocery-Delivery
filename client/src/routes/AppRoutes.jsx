@@ -51,7 +51,7 @@ const AppRoutes = () => {
         <Route path="cart" element={<Cart />} />
         <Route path="orders" element={<OrderHistory />} />
         <Route path="profile" element={<ProfileSettings />} />
-        <Route path="orders/:orderId" element={<OrderDetail />} />
+        <Route path="orders/:orderId" element={<OrderDetails />} />
         <Route path="product/:productId" element={<ProductDetails />} />
       </Route>
       {/* Supplier and Admin Dashboards */}
@@ -69,7 +69,7 @@ const AppRoutes = () => {
         <Route path="products-display" element={<ProductList />} />
         <Route path="orders" element={<OrderManager />} />
         <Route path="profile" element={<SupplierProfile />} />
-        <Route path="/supplier/orders/:orderId" element={<OrderDetail />} />
+        <Route path="orders/:orderId" element={<OrderDetail />} />
         <Route path="reviews" element={<ReviewManager />} />
       </Route>
       <Route
