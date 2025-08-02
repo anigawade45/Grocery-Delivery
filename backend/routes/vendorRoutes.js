@@ -13,12 +13,25 @@ const {
     reorder,
     getProfile,
     updateProfile,
+    getNearbyProductsFromSuppliers,
+    getVendorNotifications,
+    markNotificationRead,
+    deleteVendorNotification,
+    getVendorDashboard
 } = require("../controllers/vendorController");
 const { requireAuth } = require("../middlewares/authMiddleware");
 
+// Vendor dashboard routes
+router.get("/dashboard", requireAuth, getVendorDashboard); // Get vendor dashboard data
 // Product routes
-router.get("/products", getAllProducts);  // Browse all products (with optional filters)
+
+// Vendor profile routes
+router.get("/profile", requireAuth, getProfile);  // Get vendor profile
+router.patch("/profile", requireAuth, updateProfile); // Update vendor profile
+
+router.get("/products", requireAuth, getAllProducts);  // Browse all products (with optional filters)
 router.get("/product/:id", requireAuth, getProductById); // Get product details
+router.get("/products/nearby", requireAuth, getNearbyProductsFromSuppliers); // Get nearby products from suppliers
 
 // Cart routes
 router.post("/cart", requireAuth, addToCart); // Add product to cart
@@ -32,8 +45,10 @@ router.get("/orders", requireAuth, getOrderHistory); // Get order history
 router.get("/orders/:id", requireAuth, getOrderDetails);  // Get order details by ID
 router.post("/orders/:id/reorder", requireAuth, reorder);  // Reorder an order by ID
 
-// Vendor profile routes
-router.get("/profile", requireAuth, getProfile);  // Get vendor profile
-router.patch("/profile", requireAuth, updateProfile); // Update vendor profile
+// Notification routes
+router.get("/notifications", requireAuth, getVendorNotifications);
+router.patch("/notifications/:id/read", requireAuth, markNotificationRead);
+router.delete("/notifications/:id", requireAuth, deleteVendorNotification);
+
 
 module.exports = router;

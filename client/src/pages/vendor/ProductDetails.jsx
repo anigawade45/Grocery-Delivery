@@ -94,7 +94,6 @@ const ProductDetails = () => {
             <h2 className="text-3xl font-semibold text-gray-800">
               {product.name}
             </h2>
-            <p className="text-gray-600">{product.description}</p>
             <div className="text-xl text-orange-700 font-bold">
               ₹{product.price} / {product.unit}
             </div>
@@ -106,6 +105,10 @@ const ProductDetails = () => {
               <span className="font-medium">
                 {product.supplierId?.name || "Unknown"}
               </span>
+            </p>
+            <p className="text-sm text-gray-600">
+              Description:{" "}
+              <span className="font-medium">{product.description}</span>
             </p>
 
             <StarRating rating={product.rating || 4.3} />

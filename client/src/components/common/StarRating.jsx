@@ -1,20 +1,11 @@
 import React from "react";
-import { Star } from "lucide-react";
 
-const StarRating = ({ rating = 0 }) => {
-  const rounded = Math.round(rating);
-
+const StarRating = ({ rating }) => {
   return (
-    <div className="flex items-center gap-1 text-yellow-500">
-      {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          size={18}
-          fill={i < rounded ? "currentColor" : "none"}
-          stroke="currentColor"
-        />
+    <div className="text-yellow-500 text-sm mb-1">
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i}>{i < rating ? "★" : "☆"}</span>
       ))}
-      <span className="text-sm text-gray-600 ml-2">{rating.toFixed(1)}</span>
     </div>
   );
 };

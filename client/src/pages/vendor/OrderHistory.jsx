@@ -107,6 +107,7 @@ const OrderHistory = () => {
                 <th className="p-4">Order ID</th>
                 <th className="p-4">Date</th>
                 <th className="p-4">Items</th>
+                <th className="p-4">Supplier</th>
                 <th className="p-4">Amount</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-center">Actions</th>
@@ -133,9 +134,10 @@ const OrderHistory = () => {
                     <td className="p-4 text-gray-600 max-w-xs truncate">
                       {order.items.map((i) => i.productId?.name).join(", ")}
                     </td>
-                    <td className="p-4 text-gray-800">
-                      ₹{order.totalAmount}
+                    <td className="p-4 text-gray-700">
+                      {order.supplierId?.name || "N/A"} {/* Supplier Name */}
                     </td>
+                    <td className="p-4 text-gray-800">₹{order.totalAmount}</td>
                     <td
                       className={`p-4 font-semibold ${
                         order.status === "Delivered"
@@ -157,10 +159,7 @@ const OrderHistory = () => {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="text-center text-gray-500 p-4"
-                  >
+                  <td colSpan={6} className="text-center text-gray-500 p-4">
                     No orders found.
                   </td>
                 </tr>

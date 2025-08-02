@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import StarRating from "../../components/common/StarRating";
+import SkeletonReviewCard from "./SkeletonReviewCard";
+import { toast } from "react-toastify";
+import { SendHorizonal } from "lucide-react";
 
 const ReviewManager = () => {
   const [reviews, setReviews] = useState([]);
@@ -38,7 +42,7 @@ const ReviewManager = () => {
 
   const handleSubmit = async (id) => {
     const review = reviews.find((r) => r._id === id);
-    if (!review?.response) return alert("Response cannot be empty!");
+    if (!review?.response) return toast.error("Response cannot be empty!");
 
     setSubmitting(id);
     try {
@@ -52,26 +56,31 @@ const ReviewManager = () => {
           },
         }
       );
-      alert("Response submitted!");
+      toast.success("Response submitted!");
     } catch (err) {
       console.error("Failed to submit response:", err);
-      alert("Failed to submit response");
+      toast.error("Failed to submit response");
     } finally {
       setSubmitting(null);
     }
   };
 
-  const StarRating = ({ rating }) => (
-    <div className="text-yellow-500 text-sm mb-1">
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i}>{i < rating ? "★" : "☆"}</span>
-      ))}
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="p-6 bg-white rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold text-orange-700 mb-6">
+          Customer Reviews
+        </h2>
+        {[...Array(3)].map((_, i) => (
+          <SkeletonReviewCard key={i} />
+        ))}
+      </div>
+    );
 
-  if (loading) return <p className="p-6">Loading reviews...</p>;
-  if (error) return <p className="p-6 text-red-500">{error}</p>;
-  if (reviews.length === 0) return <p className="p-6">No reviews yet.</p>;
+  if (error) return <p className="p-6 text-red-500 font-semibold">{error}</p>;
+
+  if (reviews.length === 0)
+    return <p className="p-6 text-gray-600 italic">No reviews yet.</p>;
 
   return (
     <div className="p-6 bg-white rounded-xl shadow-lg">
@@ -100,9 +109,10 @@ const ReviewManager = () => {
           <button
             onClick={() => handleSubmit(review._id)}
             disabled={submitting === review._id}
-            className="mt-2 px-4 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 disabled:opacity-50"
+            className="mt-2 flex items-center gap-2 px-4 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 disabled:opacity-50"
           >
             {submitting === review._id ? "Submitting..." : "Submit Response"}
+            <SendHorizonal size={16} />
           </button>
         </div>
       ))}

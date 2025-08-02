@@ -98,6 +98,7 @@ const OrderDetails = () => {
       <div className="mb-6 text-gray-600 space-y-1">
         <p>Date: {new Date(order.createdAt).toLocaleDateString()}</p>
         <p>Status: {order.status}</p>
+        <p>Supplier: {order.supplierId?.name || "N/A"}</p>
         <p className="font-semibold text-gray-800">
           Total Amount: ₹{order.totalAmount}
         </p>

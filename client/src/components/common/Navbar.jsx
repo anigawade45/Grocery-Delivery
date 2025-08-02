@@ -1,20 +1,95 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Menu } from "lucide-react";
 import Logo from "../../assets/logo.jpg";
+import axios from "axios";
 import { AuthContext } from "../../context/AppContext";
+import { toast } from "react-toastify";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      let roleEndpoint = "";
+      if (user?.role === "vendor") roleEndpoint = "vendor";
+      else if (user?.role === "supplier") roleEndpoint = "supplier";
+      else return;
+
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/${roleEndpoint}/notifications`,
+        {
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
+      setNotifications(res.data.notifications || []);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === "vendor" || user?.role === "supplier") {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const handleNotificationClick = async (notificationId) => {
+    try {
+      const roleEndpoint = user?.role === "vendor" ? "vendor" : "supplier";
+
+      await axios.patch(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/${roleEndpoint}/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark as read", err);
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    const token = localStorage.getItem("token");
+    const roleEndpoint = user?.role === "vendor" ? "vendor" : "supplier";
+    try {
+      await axios.delete(
+        `${
+          import.meta.env.VITE_API_URL
+        }/api/${roleEndpoint}/notifications/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      toast.success("Notification deleted");
+    } catch (err) {
+      console.error("Delete notification error:", err);
+      toast.error("Failed to delete notification");
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const isAdmin = user?.role === "admin";
   const isSupplier = user?.role === "supplier";
   const isVendor = user?.role === "vendor";
 
   const commonLinks = [
-    
     { path: "/how-it-works", label: "How It Works" },
     { path: "/support", label: "Support" },
   ];
@@ -22,12 +97,10 @@ const Navbar = () => {
   const roleLinks = isAdmin
     ? [{ path: "/admin", label: "Admin Dashboard" }]
     : isSupplier
-    ? [{ path: "/supplier", label: "Supplier Panel" }]
+    ? [{ path: "/supplier/dashboard", label: "Supplier Panel" }]
     : isVendor
     ? [{ path: "/vendor/dashboard", label: "Vendor Panel" }]
     : [];
-
-  const notifications = isAdmin ? 5 : isSupplier ? 3 : isVendor ? 1 : 0;
 
   const renderLinks = (links, isMobile = false) =>
     links.map((link) => (
@@ -73,17 +146,8 @@ const Navbar = () => {
         </nav>
 
         {/* Right Actions */}
-        <div className="hidden md:flex items-center space-x-4">
-          {user && (
-            <button className="relative">
-              <Bell className="h-5 w-5 text-gray-700" />
-              {notifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                  {notifications}
-                </span>
-              )}
-            </button>
-          )}
+        <div className="hidden md:flex items-center space-x-4 relative">
+          {user && <NotificationBell />}
 
           {!user ? (
             <>
@@ -124,9 +188,9 @@ const Navbar = () => {
           {user && (
             <div className="flex items-center gap-2 mt-3">
               <Bell className="h-5 w-5 text-gray-700" />
-              {notifications > 0 && (
+              {unreadCount > 0 && (
                 <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {notifications} new
+                  {unreadCount} new
                 </span>
               )}
             </div>

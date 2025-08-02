@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, MapPin } from "lucide-react";
+import { AuthContext } from "../../context/AppContext";
 
 const BrowseProducts = () => {
   const [products, setProducts] = useState([]);
@@ -13,31 +14,55 @@ const BrowseProducts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [loading, setLoading] = useState(true);
+  const [nearbyOnly, setNearbyOnly] = useState(false);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
+    fetchProducts();
+  }, [nearbyOnly]);
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      if (nearbyOnly && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            const res = await axios.get(
+              `${import.meta.env.VITE_API_URL}/api/vendor/products/nearby`,
+              {
+                params: {
+                  lat: latitude,
+                  lng: longitude,
+                },
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            setProducts(res.data.products || []);
+            setLoading(false);
+          },
+          () => {
+            toast.error("Failed to get location");
+            setLoading(false);
+          }
+        );
+      } else {
         const res = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/vendor/products`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         setProducts(res.data.products || []);
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-        toast.error("Failed to fetch products");
-      } finally {
         setLoading(false);
       }
-    };
-
-    fetchProducts();
-  }, []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+      toast.error("Failed to fetch products");
+      setLoading(false);
+    }
+  };
 
   const handleClearFilters = () => {
     setSelectedCategory("");
@@ -98,9 +123,7 @@ const BrowseProducts = () => {
           quantity: 1,
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       toast.success(`${product.name} added to cart!`);
@@ -114,7 +137,7 @@ const BrowseProducts = () => {
 
   return (
     <div className="px-4 py-6 max-w-7xl mx-auto">
-      {/* Oval Search Bar */}
+      {/* Search Bar */}
       <div className="mb-6 flex justify-center">
         <input
           type="text"
@@ -171,6 +194,17 @@ const BrowseProducts = () => {
             onChange={(e) => setMaxPrice(e.target.value)}
             className="px-3 py-2 border rounded-md w-full"
           />
+
+          <label className="flex items-center gap-2 text-sm col-span-full sm:col-auto">
+            <input
+              type="checkbox"
+              checked={nearbyOnly}
+              onChange={() => setNearbyOnly(!nearbyOnly)}
+              className="h-4 w-4"
+            />
+            Nearby Only
+            <MapPin className="w-4 h-4 text-gray-500" />
+          </label>
         </div>
 
         <button

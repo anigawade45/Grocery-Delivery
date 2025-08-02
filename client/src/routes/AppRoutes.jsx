@@ -14,15 +14,17 @@ import ProductDetails from "../pages/vendor/ProductDetails";
 import SupplierVerification from "../pages/admin/SupplierVerificationPage";
 import ReportedReviews from "../pages/admin/ReportedReviews";
 import UserManagement from "../pages/admin/UserManagement";
-import DeliveryUpdater from "../pages/supplier/DeliveryUpdater";
+import SupplierDashboard from "../pages/supplier/SupplierDashboard";
 import ReviewManager from "../pages/supplier/ReviewManager";
 import OrderManager from "../pages/supplier/OrderManager";
-import SupplierDashboard from "../pages/supplier/SupplierDashboard";
 import ProductManager from "../pages/supplier/ProductManager";
 import ProductList from "../pages/supplier/ProductList";
 import Pending from "../pages/auth/Pending";
 import Rejected from "../pages/auth/Rejected";
 import VendorDashboardHome from "../pages/vendor/VendorDashboardHome";
+import SupplierDashboardLayout from "../pages/supplier/SupplierLayout";
+import OrderDetail from "../pages/supplier/OrderDetail";
+import SupplierProfile from "../pages/supplier/SupplierProfile";
 
 const AppRoutes = () => {
   return (
@@ -45,27 +47,29 @@ const AppRoutes = () => {
         }
       >
         <Route path="dashboard" element={<VendorDashboardHome />} />
-
         <Route path="browse" element={<BrowseProducts />} />
         <Route path="cart" element={<Cart />} />
         <Route path="orders" element={<OrderHistory />} />
         <Route path="profile" element={<ProfileSettings />} />
-        <Route path="orders/:orderId" element={<OrderDetails />} />
+        <Route path="orders/:orderId" element={<OrderDetail />} />
         <Route path="product/:productId" element={<ProductDetails />} />
       </Route>
       {/* Supplier and Admin Dashboards */}
+
       <Route
         path="/supplier"
         element={
           <ProtectedRoute allowedRoles={["supplier"]}>
-            <SupplierDashboard />
+            <SupplierDashboardLayout />
           </ProtectedRoute>
         }
       >
+        <Route path="dashboard" element={<SupplierDashboard />} />
         <Route path="products" element={<ProductManager />} />
         <Route path="products-display" element={<ProductList />} />
         <Route path="orders" element={<OrderManager />} />
-        <Route path="delivery" element={<DeliveryUpdater />} />
+        <Route path="profile" element={<SupplierProfile />} />
+        <Route path="/supplier/orders/:orderId" element={<OrderDetail />} />
         <Route path="reviews" element={<ReviewManager />} />
       </Route>
       <Route

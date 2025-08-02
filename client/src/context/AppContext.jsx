@@ -17,12 +17,17 @@ export const AuthProvider = ({ children }) => {
   // Check if user and token are valid
   const isAuthenticated = !!user && !!token;
 
+  console.log("User logged in:", user);
+  console.log("Token:", token);
+
   const login = (userData, tokenValue) => {
     setUser(userData);
     setToken(tokenValue);
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", tokenValue);
   };
+
+  
 
   const logout = () => {
     setUser(null);

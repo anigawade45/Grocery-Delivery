@@ -2,8 +2,9 @@ import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import SupplierDashboard from "./SupplierDashboard";
 
-const ProfileSettings = () => {
+const SupplierProfile = () => {
   const { user, token } = useContext(AuthContext);
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "");
@@ -252,4 +253,4 @@ const ProfileSettings = () => {
   );
 };
 
-export default ProfileSettings;
+export default SupplierProfile;

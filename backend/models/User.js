@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+
 const userSchema = new mongoose.Schema(
     {
         name: {
@@ -14,7 +15,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             minlength: 6,
-            select: false
+            select: false,
         },
         phone: {
             type: String,
@@ -39,10 +40,37 @@ const userSchema = new mongoose.Schema(
         bio: {
             type: String,
         },
+
+        // Geospatial location
+        location: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [longitude, latitude]
+                required: true,
+            },
+        },
+
+        // Human-readable location fields
+        formattedAddress: {
+            type: String, // Full address string (like from reverse geocoding)
+        },
+        city: {
+            type: String,
+        },
+        state: {
+            type: String,
+        },
     },
     {
         timestamps: true,
     }
 );
+
+// Create a 2dsphere index for location
+userSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("User", userSchema);

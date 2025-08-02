@@ -1,130 +1,110 @@
-import React, { useState, useContext } from "react";
-import { Menu } from "lucide-react";
-import { AuthContext } from "../../context/AppContext";
-
-import ProductManager from "./ProductManager";
-import ProductList from "./ProductList";
-import OrderManager from "./OrderManager";
-import DeliveryUpdater from "./DeliveryUpdater";
-import ReviewManager from "./ReviewManager";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { Package, ShoppingCart, IndianRupee } from "lucide-react";
 
 const SupplierDashboard = () => {
-  const { user, logout } = useContext(AuthContext);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("products");
+  const [summary, setSummary] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    monthlyData: [],
+  });
 
-  const tabButton = (key, label) => (
-    <button
-      onClick={() => setActiveTab(key)}
-      className={`px-4 py-2 rounded-t-lg font-medium ${
-        activeTab === key
-          ? "bg-orange-500 text-white"
-          : "bg-orange-100 text-orange-800 hover:bg-orange-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/supplier/dashboard`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setSummary(res.data);
+      } catch (err) {
+        console.error("Error fetching supplier summary:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSummary();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-gray-500 animate-pulse">
+        Loading supplier dashboard...
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-orange-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden absolute top-4 left-4 z-20 text-orange-600"
-      >
-        <Menu size={28} />
-      </button>
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-orange-700">
+        Supplier Dashboard
+      </h1>
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed md:static z-10 inset-y-0 left-0 w-64 bg-white border-r shadow-sm p-6 space-y-6 transform transition-transform duration-200 ease-in-out ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        <h2 className="text-2xl font-bold text-orange-600 mb-8">RasoiSathi</h2>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <Card
+          icon={<Package size={32} className="text-orange-500" />}
+          title="Total Products"
+          value={summary.totalProducts}
+        />
+        <Card
+          icon={<ShoppingCart size={32} className="text-orange-500" />}
+          title="Total Orders"
+          value={summary.totalOrders}
+        />
+        <Card
+          icon={<IndianRupee size={32} className="text-orange-500" />}
+          title="Total Revenue"
+          value={`₹${summary.totalRevenue}`}
+        />
+      </div>
 
-        <nav className="flex flex-col space-y-4 text-md font-medium">
-          <button
-            onClick={() => setActiveTab("products")}
-            className={
-              activeTab === "products"
-                ? "text-orange-600 font-semibold"
-                : "text-gray-700 hover:text-orange-500 transition"
-            }
-          >
-            📦 Manage Products
-          </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={
-              activeTab === "orders"
-                ? "text-orange-600 font-semibold"
-                : "text-gray-700 hover:text-orange-500 transition"
-            }
-          >
-            🧾 Incoming Orders
-          </button>
-          <button
-            onClick={() => setActiveTab("delivery")}
-            className={
-              activeTab === "delivery"
-                ? "text-orange-600 font-semibold"
-                : "text-gray-700 hover:text-orange-500 transition"
-            }
-          >
-            🚚 Delivery Status
-          </button>
-          <button
-            onClick={() => setActiveTab("reviews")}
-            className={
-              activeTab === "reviews"
-                ? "text-orange-600 font-semibold"
-                : "text-gray-700 hover:text-orange-500 transition"
-            }
-          >
-            💬 Customer Reviews
-          </button>
-          <button
-            onClick={logout}
-            className="text-red-500 hover:text-red-600 text-left mt-4"
-          >
-            🚪 Logout
-          </button>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-800">
-            Welcome, {user?.name || user?.email || "Supplier"}!
-          </h1>
-        </header>
-
-        <main className="flex-1 px-6 py-8">
-          <div className="flex space-x-2 border-b mb-6">
-            {tabButton("products", "Manage Products")}
-            {tabButton("orders", "Incoming Orders")}
-            {tabButton("delivery", "Update Delivery")}
-            {tabButton("reviews", "Customer Reviews")}
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            {activeTab === "products" && (
-              <>
-                <ProductList />
-                <ProductManager />
-              </>
-            )}
-            {activeTab === "orders" && <OrderManager />}
-            {activeTab === "delivery" && <DeliveryUpdater />}
-            {activeTab === "reviews" && <ReviewManager />}
-          </div>
-        </main>
+      {/* Monthly Chart */}
+      <div className="bg-white p-6 rounded-xl shadow-md">
+        <h2 className="text-xl font-semibold mb-4 text-orange-700">
+          Monthly Orders & Revenue
+        </h2>
+        {summary.monthlyData?.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={summary.monthlyData}>
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="revenue" name="Revenue (₹)" fill="#f97316" />
+              <Bar dataKey="orders" name="Orders" fill="#6366f1" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-500">No monthly data available.</p>
+        )}
       </div>
     </div>
   );
 };
+
+// Reusable Card component
+const Card = ({ icon, title, value }) => (
+  <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center text-center">
+    <div className="mb-3">{icon}</div>
+    <h2 className="text-gray-600 text-sm">{title}</h2>
+    <p className="text-2xl font-bold text-orange-700">{value}</p>
+  </div>
+);
 
 export default SupplierDashboard;

@@ -88,15 +88,45 @@ const Cart = () => {
     try {
       const token = localStorage.getItem("token");
 
+      const items = cart.items.map((item) => ({
+        productId: item.productId._id,
+        quantity: item.quantity,
+        price: item.productId.price,
+        supplierId: item.productId.supplierId?._id || item.productId.supplierId,
+      }));
+
+      const supplierIds = [...new Set(items.map((item) => item.supplierId))];
+
+      if (supplierIds.length !== 1) {
+        toast.error(
+          "All items must be from the same supplier to place an order."
+        );
+        return;
+      }
+
+      const totalAmount = items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() + 3); // 3 days from now
+
       await axios.post(
         `${import.meta.env.VITE_API_URL}/api/vendor/order`,
-        {},
+        {
+          items,
+          totalAmount,
+          deliveryDate,
+          supplierId: supplierIds[0],
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
+
       toast.success("Order placed successfully!");
       fetchCart();
     } catch (err) {
@@ -169,8 +199,9 @@ const Cart = () => {
                     {product.name}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Supplier: {product.supplierId?.name}
+                    Supplier: {product.supplierId?.name || "Unknown"}
                   </p>
+
                   <p className="text-orange-600 font-medium">
                     ₹{product.price} × {item.quantity} ={" "}
                     <span className="font-semibold">
