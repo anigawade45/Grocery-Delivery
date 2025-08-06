@@ -3,7 +3,9 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
+const Review = require("../models/Review");
 const sendNotification = require("../middlewares/sendNotification");
+const mongoose = require("mongoose");
 
 const getVendorDashboard = async (req, res) => {
     const vendorId = req.user._id;
@@ -487,6 +489,139 @@ const deleteVendorNotification = async (req, res) => {
     }
 };
 
+const getProductReviews = async (req, res) => {
+    const { id: productId } = req.params;
+    try {
+        const reviews = await Review.find({ productId })
+            .populate("vendorId", "name")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(reviews);
+    } catch (err) {
+        console.error("Fetch Product Reviews Error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getMyReviews = async (req, res) => {
+    try {
+        const reviews = await Review.find({ vendorId: req.user._id }).populate("productId", "name image");
+        res.status(200).json(reviews);
+    } catch (err) {
+        console.error("Get My Reviews Error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+async function recomputeProductRating(productId) {
+    // Normalize to ObjectId safely
+    const pid =
+        typeof productId === "string"
+            ? new mongoose.Types.ObjectId(productId)
+            : productId; // already ObjectId
+
+    const stats = await Review.aggregate([
+        { $match: { productId: pid } },
+        {
+            $group: {
+                _id: "$productId",
+                avg: { $avg: "$rating" },
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+
+    const avg = stats[0]?.avg ?? 0;
+    const count = stats[0]?.count ?? 0;
+
+    // Make sure your Product schema actually has these fields
+    await Product.updateOne(
+        { _id: pid },
+        {
+            $set: {
+                avgRating: Math.round(avg * 10) / 10, // 1 decimal
+                ratingsCount: count,
+            },
+        }
+    );
+
+    return { avg, count };
+}
+
+// POST /api/vendor/reviews
+const submitReview = async (req, res) => {
+    const { productId, rating, comment } = req.body;
+    const vendorId = req.user._id;
+
+    try {
+        if (!productId || !rating) {
+            return res.status(400).json({ message: "productId and rating are required" });
+        }
+
+        const existing = await Review.findOne({ productId, vendorId });
+        if (existing) {
+            return res.status(400).json({ message: "You already reviewed this product" });
+        }
+
+        const review = await Review.create({ productId, vendorId, rating, comment });
+
+        // Recompute product stats
+        await recomputeProductRating(productId);
+
+        res.status(201).json({ message: "Review submitted", review });
+    } catch (err) {
+        console.error("Submit Review Error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// PATCH /api/vendor/reviews/:id
+const editReview = async (req, res) => {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const vendorId = req.user._id;
+
+    try {
+        const review = await Review.findOne({ _id: id, vendorId });
+        if (!review) return res.status(404).json({ message: "Review not found" });
+
+        if (rating != null) review.rating = rating;
+        if (comment != null) review.comment = comment;
+        await review.save();
+
+        // Recompute after edit
+        await recomputeProductRating(review.productId);
+
+        res.status(200).json({ message: "Review updated", review });
+    } catch (err) {
+        console.error("Edit Review Error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// DELETE /api/vendor/reviews/:id
+const deleteReview = async (req, res) => {
+    const { id } = req.params;
+    const vendorId = req.user._id;
+
+    try {
+        const review = await Review.findOne({ _id: id, vendorId });
+        if (!review) return res.status(404).json({ message: "Review not found or unauthorized" });
+
+        const productId = review.productId;
+        await review.deleteOne();
+
+        // Recompute after delete
+        await recomputeProductRating(productId);
+
+        res.status(200).json({ message: "Review deleted" });
+    } catch (err) {
+        console.error("Delete Review Error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 module.exports = {
     getAllProducts,
     getProductById,
@@ -504,5 +639,10 @@ module.exports = {
     getVendorNotifications,
     markNotificationRead,
     getVendorDashboard,
-    deleteVendorNotification
+    deleteVendorNotification,
+    submitReview,
+    getProductReviews,
+    getMyReviews,
+    editReview,
+    deleteReview
 };

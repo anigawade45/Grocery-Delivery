@@ -17,7 +17,12 @@ const {
     getVendorNotifications,
     markNotificationRead,
     deleteVendorNotification,
-    getVendorDashboard
+    getVendorDashboard,
+    submitReview,
+    getProductReviews,
+    getMyReviews,
+    editReview,
+    deleteReview
 } = require("../controllers/vendorController");
 const { requireAuth } = require("../middlewares/authMiddleware");
 
@@ -44,6 +49,13 @@ router.post("/order", requireAuth, placeOrder); // Place an order
 router.get("/orders", requireAuth, getOrderHistory); // Get order history
 router.get("/orders/:id", requireAuth, getOrderDetails);  // Get order details by ID
 router.post("/orders/:id/reorder", requireAuth, reorder);  // Reorder an order by ID
+
+//Reviews
+router.post("/reviews", requireAuth, submitReview);
+router.get("/reviews/product/:id", requireAuth, getProductReviews);
+router.get("/reviews/mine", requireAuth, getMyReviews);
+router.patch("/reviews/:id", requireAuth, editReview);
+router.delete("/reviews/:id", requireAuth, deleteReview);
 
 // Notification routes
 router.get("/notifications", requireAuth, getVendorNotifications);

@@ -16,7 +16,8 @@ const {
     deleteSupplierNotification,
     getProfile,
     updateProfile,
-    restoreProduct
+    restoreProduct,
+    respondToReview
 } = require("../controllers/supplierController");
 const { requireAuth, upload } = require("../middlewares/authMiddleware");
 
@@ -36,9 +37,9 @@ router.get("/orders", requireAuth, getMyOrders);
 router.get("/orders/:id", requireAuth, getOrderById);
 router.patch("/orders/:id/status", requireAuth, updateOrderStatus);
 
-
 // Reviews
 router.get("/reviews", requireAuth, getMyReviews);
+router.patch("/reviews/:id/respond", requireAuth, respondToReview);
 
 // Notifications
 router.get("/notifications", requireAuth, getSupplierNotifications);

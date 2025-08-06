@@ -1,30 +1,29 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 
-const ReviewForm = ({ productId }) => {
+const ReviewForm = ({ productId, onReviewSubmitted }) => {
   const [rating, setRating] = useState(5);
   const [text, setText] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
-      await fetch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/api/vendor/product/${productId}/review`,
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/vendor/reviews`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ rating, comment: text }),
+          productId,
+          rating,
+          comment,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       toast.success("✅ Review submitted!");
       setRating(5);
       setText("");
+      if (onReviewSubmitted) onReviewSubmitted(); // Trigger callback
     } catch (err) {
       toast.error("❌ Failed to submit review");
     }

@@ -5,37 +5,37 @@ const reviewSchema = new mongoose.Schema(
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true
+      required: true,
+      index: true,
     },
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
+      index: true,
     },
     rating: {
       type: Number,
-      required: true
+      required: true,
+      min: 1,
+      max: 5,
     },
-    comment: String,
-    isReported: {
-      type: Boolean,
-      default: false
+    comment: { type: String, trim: true },
+    response: {
+      type: String,
+      default: null,
+      trim: true,
     },
-    reply: {
-      type: String
-    },
-    approved: {
-      type: Boolean,
-      default: false
-    },
-    reportReason: String,
   },
   {
-    timestamps: {
-      createdAt: true,
-      updatedAt: false
-    }
+    timestamps: true, // createdAt + updatedAt
   }
 );
+
+// One review per vendor per product
+reviewSchema.index({ productId: 1, vendorId: 1 }, { unique: true });
+// Query helpers
+reviewSchema.index({ productId: 1, createdAt: -1 });
+reviewSchema.index({ vendorId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Review", reviewSchema);

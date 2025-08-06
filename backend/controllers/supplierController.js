@@ -344,23 +344,62 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// 7. Get reviews for supplier's products
 const getMyReviews = async (req, res) => {
     try {
         const supplierId = req.user._id;
 
-        const reviews = await Review.find()
-            .populate("productId", "name supplierId")
-            .populate("userId", "name");
+        // Find product ids owned by this supplier
+        const myProducts = await Product.find({ supplierId }).select("_id");
+        const myProductIds = myProducts.map((p) => p._id);
 
-        const filtered = reviews.filter(
-            (r) => r.productId?.supplierId?.toString() === supplierId.toString()
-        );
+        if (myProductIds.length === 0) {
+            return res.status(200).json({ reviews: [] });
+        }
 
-        res.status(200).json({ reviews: filtered });
-    } catch (err) {
-        console.error("Error fetching supplier reviews:", err);
+        const reviews = await Review.find({ productId: { $in: myProductIds } })
+            .populate("productId", "name image")
+            .populate("vendorId", "name email")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ reviews });
+    } catch (error) {
+        console.error("Error fetching supplier reviews:", error);
         res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+};
+
+const respondToReview = async (req, res) => {
+    const { id } = req.params;
+    const { response } = req.body;
+    const supplierId = req.user._id;
+
+    try {
+        if (!response || !response.trim()) {
+            return res.status(400).json({ message: "Response text is required" });
+        }
+
+        // Load review + product to verify ownership
+        const review = await Review.findById(id).populate("productId", "supplierId");
+        if (!review) return res.status(404).json({ message: "Review not found" });
+
+        if (String(review.productId.supplierId) !== String(supplierId)) {
+            return res
+                .status(403)
+                .json({ message: "You are not authorized to respond to this review" });
+        }
+
+        review.response = response.trim();
+        await review.save();
+
+        // Return populated review for UI
+        const populated = await Review.findById(review._id)
+            .populate("productId", "name image")
+            .populate("vendorId", "name email");
+
+        res.status(200).json({ message: "Response added successfully", review: populated });
+    } catch (err) {
+        console.error("Error responding to review:", err);
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -436,6 +475,7 @@ module.exports = {
     getOrderById,
     updateOrderStatus,
     getMyReviews,
+    respondToReview,
     getSupplierNotifications,
     markNotificationRead,
     deleteSupplierNotification,

@@ -25,22 +25,12 @@ const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const vendorRoutes = require("./routes/vendorRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
-const reviewRoutes = require("./routes/reviewRoutes");
-
 
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/supplier", supplierRoutes);
-app.use("/api/reviews", reviewRoutes);
 
-// Optional (for future use)
-// const productRoutes = require("./routes/product.routes");
-// const orderRoutes = require("./routes/order.routes");
-// const reviewRoutes = require("./routes/review.routes");
-// const supplierRoutes = require("./routes/supplier.routes");
-
-// ❤️ Health Check
 app.get("/", (req, res) => {
     res.send("✅ VendorVerse API is running...");
 });
