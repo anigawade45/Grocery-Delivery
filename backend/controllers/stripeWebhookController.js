@@ -66,7 +66,7 @@ const stripeWebhook = async (req, res) => {
             price: i.price
           })),
           totalAmount,
-          paymentMethod: "card",
+          paymentMethod: "Stripe",
           paymentStatus: "paid",
           status: "processing",
           paymentId: session.payment_intent,
