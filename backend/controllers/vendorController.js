@@ -1,3 +1,5 @@
+const Stripe = require("stripe");
+const dotenv = require("dotenv");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const User = require("../models/User");
@@ -6,6 +8,10 @@ const Notification = require("../models/Notification");
 const Review = require("../models/Review");
 const sendNotification = require("../middlewares/sendNotification");
 const mongoose = require("mongoose");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+dotenv.config();
+
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const getVendorDashboard = async (req, res) => {
     const vendorId = req.user._id;
@@ -340,11 +346,18 @@ const placeOrder = async (req, res) => {
         }
 
         const supplierId = uniqueSupplierIds[0];
+        const { deliveryDate, paymentMethod } = req.body;
 
-        const { deliveryDate } = req.body;
         if (!deliveryDate) {
             return res.status(400).json({ message: "Delivery date is required" });
         }
+
+        if (!paymentMethod || !["COD", "Stripe"].includes(paymentMethod)) {
+            return res.status(400).json({ message: "Invalid or missing payment method" });
+        }
+
+        // Decide starting paymentStatus
+        const startingPaymentStatus = paymentMethod === "Stripe" ? "unpaid" : "pending";
 
         const newOrder = new Order({
             vendorId,
@@ -352,20 +365,59 @@ const placeOrder = async (req, res) => {
             totalAmount,
             deliveryDate,
             supplierId,
+            paymentMethod,
+            paymentStatus: startingPaymentStatus,
+            status: "pending",
         });
 
+        await newOrder.validate();
         await newOrder.save();
+
+        // Handle payment methods
+        if (paymentMethod === "Stripe") {
+            const line_items = items.map(item => ({
+                price_data: {
+                    currency: process.env.CURRENCY.toLowerCase(),
+                    product_data: {
+                        name: `Product ID: ${item.productId}`, // Could use product name
+                    },
+                    unit_amount: Math.floor(item.price * 100),
+                },
+                quantity: item.quantity,
+            }));
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ["card"],
+                mode: "payment",
+                line_items,
+                success_url: `${process.env.FRONTEND_URL}/order-success?orderId=${newOrder._id}`,
+                cancel_url: `${process.env.FRONTEND_URL}/order-cancel`,
+                customer_email: vendor.email,
+                metadata: { orderId: newOrder._id.toString() },
+                billing_address_collection: "required",
+            });
+
+            // ❌ Do NOT clear cart or notify supplier here for Stripe orders
+            return res.status(201).json({
+                message: "Order created successfully. Redirect to Stripe checkout.",
+                sessionUrl: session.url,
+            });
+        }
+
+        // COD orders — clear cart and notify immediately
         await Cart.findOneAndDelete({ vendorId });
+
         await sendNotification({
-            userId: newOrder.supplierId,  // FIXED
+            userId: supplierId,
             type: "order",
-            message: `You have a new order from vendor ${vendor.name}.`, // vendorId is an ObjectId, not .name
+            message: `You have a new COD order from vendor ${vendor.name}.`,
         });
 
-        res.status(201).json({ message: "Order placed successfully", order: newOrder });
+        res.status(201).json({ message: "COD order created successfully." });
+
     } catch (err) {
         console.error("Error placing order:", err);
-        res.status(500).json({ message: "Internal Server Error", error: err.message });
+        res.status(400).json({ message: err.message });
     }
 };
 
@@ -405,33 +457,65 @@ const reorder = async (req, res) => {
         if (!oldOrder) {
             return res.status(404).json({ message: "Previous order not found" });
         }
+
         // Set delivery date to 3 days from now
         const deliveryDate = new Date();
         deliveryDate.setDate(deliveryDate.getDate() + 3);
 
+        // Create new order with old items but new delivery date and pending statuses
         const newOrder = new Order({
             vendorId,
             items: oldOrder.items,
             totalAmount: oldOrder.totalAmount,
             status: "pending",
-            supplierId: oldOrder.supplierId, // ✅ Required field
-            deliveryDate,                   // ✅ Required field
+            paymentStatus: "pending",
+            supplierId: oldOrder.supplierId,
+            deliveryDate,
         });
 
         await newOrder.save();
-        await sendNotification({
-            userId: newOrder.supplierId,  // FIXED
-            type: "order",
-            message: `You have a new order from vendor ${vendor.name}.`,
+
+        // Prepare Stripe line items from newOrder items
+        const line_items = newOrder.items.map(item => ({
+            price_data: {
+                currency: process.env.CURRENCY.toLowerCase(),
+                product_data: {
+                    name: `Product ID: ${item.productId}`, // Or get product name if desired
+                },
+                unit_amount: Math.floor(item.price * 100),
+            },
+            quantity: item.quantity,
+        }));
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'payment',
+            line_items,
+            success_url: `${process.env.FRONTEND_URL}/order-success?orderId=${newOrder._id}`,
+            cancel_url: `${process.env.FRONTEND_URL}/order-cancel`,
+            customer_email: vendor.email,
+            metadata: {
+                orderId: newOrder._id.toString(),
+            },
+            billing_address_collection: "required",
         });
 
-        res.status(201).json({ message: "Reorder placed successfully", order: newOrder });
+        await sendNotification({
+            userId: newOrder.supplierId,
+            type: "order",
+            message: `You have a new reorder from vendor ${vendor.name}.`,
+        });
+
+        res.status(201).json({
+            message: "Reorder created successfully. Redirect to Stripe checkout.",
+            sessionUrl: session.url,
+        });
+
     } catch (err) {
         console.error("Error reordering:", err);
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
-
 const getVendorNotifications = async (req, res) => {
     try {
         const vendorId = req.user._id;
@@ -620,7 +704,6 @@ const deleteReview = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 module.exports = {
     getAllProducts,

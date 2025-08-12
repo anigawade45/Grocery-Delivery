@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { ShoppingCart, Eye, MapPin } from "lucide-react";
-import { AuthContext } from "../../context/AppContext";
+import { debounce } from "lodash"; // Install lodash for debounce
 
 const BrowseProducts = () => {
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -25,20 +24,17 @@ const BrowseProducts = () => {
     try {
       const token = localStorage.getItem("token");
 
+      let apiUrl = `${import.meta.env.VITE_API_URL}/api/vendor/products`;
       if (nearbyOnly && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const { latitude, longitude } = pos.coords;
-            const res = await axios.get(
-              `${import.meta.env.VITE_API_URL}/api/vendor/products/nearby`,
-              {
-                params: {
-                  lat: latitude,
-                  lng: longitude,
-                },
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
+            apiUrl = `${
+              import.meta.env.VITE_API_URL
+            }/api/vendor/products/nearby?lat=${latitude}&lng=${longitude}`;
+            const res = await axios.get(apiUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
             setProducts(res.data.products || []);
             setLoading(false);
           },
@@ -48,12 +44,9 @@ const BrowseProducts = () => {
           }
         );
       } else {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/vendor/products`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const res = await axios.get(apiUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setProducts(res.data.products || []);
         setLoading(false);
       }
@@ -64,15 +57,15 @@ const BrowseProducts = () => {
     }
   };
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSelectedCategory("");
     setMaxPrice("");
     setSelectedSupplier("");
     setSearchTerm("");
     setSortOption("");
-  };
+  }, []);
 
-  useEffect(() => {
+  const filterProducts = useCallback(() => {
     let temp = [...products];
 
     if (selectedCategory) {
@@ -96,7 +89,7 @@ const BrowseProducts = () => {
       temp.sort((a, b) => b.price - a.price);
     }
 
-    setFilteredProducts(temp);
+    return temp;
   }, [
     products,
     selectedCategory,
@@ -106,14 +99,18 @@ const BrowseProducts = () => {
     sortOption,
   ]);
 
-  const uniqueCategories = [
-    ...new Set(products.map((p) => p.category).filter(Boolean)),
-  ];
-  const uniqueSuppliers = [
-    ...new Set(products.map((p) => p.supplierId?.name).filter(Boolean)),
-  ];
+  const filteredProducts = useMemo(() => filterProducts(), [filterProducts]);
 
-  const handleAddToCart = async (product) => {
+  const uniqueCategories = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))],
+    [products]
+  );
+  const uniqueSuppliers = useMemo(
+    () => [...new Set(products.map((p) => p.supplierId?.name).filter(Boolean))],
+    [products]
+  );
+
+  const handleAddToCart = useCallback(async (product) => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
@@ -131,7 +128,14 @@ const BrowseProducts = () => {
       console.error("Error adding to cart:", err.response?.data || err.message);
       toast.error("Failed to add to cart");
     }
-  };
+  }, []);
+
+  const debouncedSetSearchTerm = useCallback(
+    debounce((value) => {
+      setSearchTerm(value);
+    }, 300),
+    []
+  );
 
   const skeletons = Array.from({ length: 6 });
 
@@ -142,8 +146,7 @@ const BrowseProducts = () => {
         <input
           type="text"
           placeholder="Search for products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => debouncedSetSearchTerm(e.target.value)}
           className="w-full sm:w-2/3 md:w-1/2 px-6 py-2 border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
         />
       </div>
@@ -246,17 +249,29 @@ const BrowseProducts = () => {
                   {product.name}
                 </h3>
                 <p className="text-sm text-gray-500">{product.category}</p>
-                <p className="text-sm text-gray-600">
-                  By {product.supplierId?.name || "Unknown"}
-                </p>
+                <div className="flex items-center gap-1">
+                  <img
+                    src={product.supplierId?.logoUrl || "/default-logo.png"}
+                    alt={product.supplierId?.name || "Unknown"}
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                  <p className="text-sm text-gray-600">
+                    By {product.supplierId?.name || "Unknown"}
+                  </p>
+                </div>
+                {/* Add rating and reviews here */}
                 <p className="text-orange-600 font-bold text-lg">
                   ₹{product.price}
                 </p>
+                {product.stock <= 0 && (
+                  <p className="text-red-500 font-semibold">Out of Stock</p>
+                )}
               </div>
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => handleAddToCart(product)}
                   className="flex-1 flex items-center justify-center gap-2 bg-orange-600 text-white py-2 rounded hover:bg-orange-700"
+                  disabled={product.stock <= 0}
                 >
                   <ShoppingCart className="w-4 h-4" /> Add to Cart
                 </button>

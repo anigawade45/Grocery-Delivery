@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
-
   {
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -36,13 +35,23 @@ const orderSchema = new mongoose.Schema(
     },
     deliveryDate: {
       type: Date,
-      required: true
     },
     supplierId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
+    paymentMethod: {
+      type: String,
+      enum: ["COD", "Stripe"],
+      required: true
+    },
+    paymentSessionId: String,
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "unpaid", "paid", "failed", "refunded"],
+      default: "pending"
+    }
   },
   {
     timestamps: {

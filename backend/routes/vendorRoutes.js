@@ -22,7 +22,7 @@ const {
     getProductReviews,
     getMyReviews,
     editReview,
-    deleteReview
+    deleteReview,
 } = require("../controllers/vendorController");
 const { requireAuth } = require("../middlewares/authMiddleware");
 

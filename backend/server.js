@@ -1,7 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
+const dotenv = require("dotenv")
+const stripeWebhook = require("./controllers/stripeWebhookController");
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/supplier", supplierRoutes);
+app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhook);
 
 app.get("/", (req, res) => {
     res.send("✅ VendorVerse API is running...");

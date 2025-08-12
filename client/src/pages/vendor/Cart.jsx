@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 const Cart = () => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("Stripe"); // default
+  const [placingOrder, setPlacingOrder] = useState(false); // NEW: track order request
+  const navigate = useNavigate();
 
   const fetchCart = async () => {
     try {
@@ -58,7 +61,15 @@ const Cart = () => {
         toast.info(`Removed one "${productName}" from your cart.`);
       }
 
-      fetchCart();
+      setCart((prevCart) => {
+        const updatedItems = prevCart.items.map((item) => {
+          if (item.productId._id === productId) {
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        });
+        return { ...prevCart, items: updatedItems };
+      });
     } catch (err) {
       console.error("Error updating quantity:", err);
       toast.error("Failed to update quantity.");
@@ -77,7 +88,13 @@ const Cart = () => {
         }
       );
       toast.success("🗑️ Item removed from cart");
-      fetchCart();
+
+      setCart((prevCart) => {
+        const updatedItems = prevCart.items.filter(
+          (item) => item.productId._id !== productId
+        );
+        return { ...prevCart, items: updatedItems };
+      });
     } catch (err) {
       console.error("Error removing item:", err);
       toast.error("Failed to remove item");
@@ -85,6 +102,7 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
+    setPlacingOrder(true); // disable button during request
     try {
       const token = localStorage.getItem("token");
 
@@ -96,7 +114,6 @@ const Cart = () => {
       }));
 
       const supplierIds = [...new Set(items.map((item) => item.supplierId))];
-
       if (supplierIds.length !== 1) {
         toast.error(
           "All items must be from the same supplier to place an order."
@@ -110,16 +127,19 @@ const Cart = () => {
       );
 
       const deliveryDate = new Date();
-      deliveryDate.setDate(deliveryDate.getDate() + 3); // 3 days from now
+      deliveryDate.setDate(deliveryDate.getDate() + 3);
 
-      await axios.post(
+      const orderData = {
+        items,
+        totalAmount,
+        deliveryDate,
+        supplierId: supplierIds[0],
+        paymentMethod: paymentMethod,
+      };
+
+      const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/vendor/order`,
-        {
-          items,
-          totalAmount,
-          deliveryDate,
-          supplierId: supplierIds[0],
-        },
+        orderData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -127,11 +147,26 @@ const Cart = () => {
         }
       );
 
-      toast.success("Order placed successfully!");
-      fetchCart();
+      if (paymentMethod === "COD") {
+        if (res.data.success) {
+          toast.success("✅ Order placed successfully with Cash on Delivery.");
+          navigate("/order-confirmation");
+        } else {
+          toast.error("Failed to place COD order.");
+        }
+      } else {
+        const sessionUrl = res.data.sessionUrl;
+        if (!sessionUrl) {
+          toast.error("Failed to create Stripe checkout session.");
+          return;
+        }
+        window.location.href = sessionUrl;
+      }
     } catch (err) {
       console.error("Error placing order:", err);
       toast.error("Failed to place order");
+    } finally {
+      setPlacingOrder(false); // re-enable button
     }
   };
 
@@ -253,6 +288,31 @@ const Cart = () => {
             );
           })}
 
+          {/* Payment Method Selector */}
+          <div className="mt-6 border-t pt-4">
+            <h3 className="font-semibold mb-2">Payment Method:</h3>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  value="Stripe"
+                  checked={paymentMethod === "Stripe"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                />
+                Online Payment (Stripe)
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  value="COD" // ⬅ uppercase to match backend
+                  checked={paymentMethod === "COD"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                />
+                Cash on Delivery
+              </label>
+            </div>
+          </div>
+
           {/* Order Summary */}
           <div className="text-right mt-10 border-t pt-6">
             <p className="text-xl font-semibold text-gray-700">
@@ -264,8 +324,9 @@ const Cart = () => {
             <button
               onClick={handlePlaceOrder}
               className="mt-4 bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition disabled:opacity-60"
+              disabled={placingOrder} // disable during request
             >
-              Place Order
+              {placingOrder ? "Placing..." : "Place Order"}
             </button>
           </div>
         </div>

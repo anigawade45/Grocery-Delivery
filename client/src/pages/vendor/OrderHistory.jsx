@@ -35,14 +35,23 @@ const OrderHistory = () => {
 
   const handleReorder = async (orderId) => {
     try {
-      await axios.post(
+      const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/vendor/orders/${orderId}/reorder`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      toast.success("Reordered successfully!");
+
+      const sessionUrl = res.data.sessionUrl;
+
+      if (!sessionUrl) {
+        toast.error("Failed to create Stripe checkout session for reorder.");
+        return;
+      }
+
+      // Redirect to Stripe checkout
+      window.location.href = sessionUrl;
     } catch (err) {
       console.error("Error during reorder:", err);
       toast.error("Failed to reorder");
