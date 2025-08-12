@@ -143,7 +143,7 @@ const stripeWebhook = async (req, res) => {
         order.status = "cancelled";
         await order.save();
 
-        console.log(`⚠️ Card payment failed for order ${orderId}. Marked cancelled.`);
+        console.log(`⚠️ Stripe payment failed for order ${orderId}. Marked cancelled.`);
       } catch (err) {
         console.error("Error processing failed payment:", err);
       }
