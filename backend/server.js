@@ -18,6 +18,7 @@ app.use(
     })
 );
 
+app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhook);
 
 app.use(express.json()); // body parser for all routes
 
@@ -31,7 +32,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/supplier", supplierRoutes);
-app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhook);
 
 app.get("/", (req, res) => {
     res.send("✅ VendorVerse API is running...");
