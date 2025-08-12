@@ -10,6 +10,15 @@ dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+async function ensureDbConnected() {
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+  }
+}
+
 const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
@@ -39,6 +48,7 @@ const stripeWebhook = async (req, res) => {
       let mongoSession;
 
       try {
+        await ensureDbConnected(); // ✅ Ensure DB ready
         mongoSession = await mongoose.startSession();
         mongoSession.startTransaction();
 
@@ -49,7 +59,7 @@ const stripeWebhook = async (req, res) => {
           return res.status(404).json({ received: false });
         }
 
-        // Only handle Stripe (card) orders
+        // Only handle Stripe orders
         if (order.paymentMethod !== "Stripe") {
           console.warn(`Skipping non-Stripe order ${orderId} in webhook.`);
           await mongoSession.abortTransaction();
@@ -80,7 +90,7 @@ const stripeWebhook = async (req, res) => {
         // Commit transaction first
         await mongoSession.commitTransaction();
 
-        console.log(`✅ Order ${orderId} marked as paid (Stripe) and stock updated.`);
+        console.log(`✅ Order ${orderId} marked as paid (card) and stock updated.`);
 
         // Notify supplier AFTER successful commit
         try {
@@ -120,11 +130,12 @@ const stripeWebhook = async (req, res) => {
       }
 
       try {
+        await ensureDbConnected(); // ✅ Ensure DB ready
         const order = await Order.findById(orderId);
         if (!order) break;
 
-        if (order.paymentMethod !== "Stripe") {
-          console.warn(`Skipping non-Stripe order ${orderId} in webhook.`);
+        if (order.paymentMethod !== "card") {
+          console.warn(`Skipping non-card order ${orderId} in webhook.`);
           break;
         }
 
@@ -132,7 +143,7 @@ const stripeWebhook = async (req, res) => {
         order.status = "cancelled";
         await order.save();
 
-        console.log(`⚠️ Stripe payment failed for order ${orderId}. Marked cancelled.`);
+        console.log(`⚠️ Card payment failed for order ${orderId}. Marked cancelled.`);
       } catch (err) {
         console.error("Error processing failed payment:", err);
       }
