@@ -319,12 +319,87 @@ const removeFromCart = async (req, res) => {
     }
 };
 
+const createCheckoutSession = async (req, res) => {
+    try {
+        const vendorId = req.user._id;
+        const vendor = await User.findById(vendorId);
+        if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+        const cart = await Cart.findOne({ vendorId }).populate("items.productId");
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({ message: "Cart is empty" });
+        }
+
+        const items = cart.items.map(item => ({
+            productId: item.productId._id,
+            quantity: item.quantity,
+            price: item.productId.price,
+            name: item.productId.name,
+            supplierId: item.productId.supplierId.toString(),
+            image: item.productId.image?.url || "",
+        }));
+
+        const totalAmount = items.reduce((acc, item) => acc + item.quantity * item.price, 0);
+
+        const uniqueSupplierIds = [...new Set(items.map(item => item.supplierId))];
+        if (uniqueSupplierIds.length !== 1) {
+            return res.status(400).json({ message: "All products must be from the same supplier" });
+        }
+
+        const supplierId = uniqueSupplierIds[0];
+        const { deliveryDate } = req.body;
+        if (!deliveryDate) {
+            return res.status(400).json({ message: "Delivery date is required" });
+        }
+
+        // Create Stripe Checkout session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            mode: "payment",
+            line_items: items.map(item => ({
+                price_data: {
+                    currency: process.env.CURRENCY.toLowerCase(),
+                    product_data: {
+                        name: item.name,
+                        images: item.image ? [item.image] : [],
+                    },
+                    unit_amount: Math.round(item.price * 100),
+                },
+                quantity: item.quantity,
+            })),
+            success_url: `${process.env.FRONTEND_URL}/order-success`,
+            cancel_url: `${process.env.FRONTEND_URL}/order-cancel`,
+            customer_email: vendor.email,
+            billing_address_collection: "required",
+            metadata: {
+                vendorId: vendorId.toString(),
+                supplierId,
+                items: JSON.stringify(items),
+                totalAmount: totalAmount.toString(),
+                deliveryDate,
+                paymentMethod: "Stripe",
+            },
+        });
+
+        res.status(201).json({ message: "Checkout session created", sessionUrl: session.url });
+    } catch (err) {
+        console.error("Error creating checkout session:", err);
+        res.status(500).json({ message: "Failed to create checkout session", error: err.message });
+    }
+};
+
 const placeOrder = async (req, res) => {
     try {
         const vendorId = req.user._id;
         const vendor = await User.findById(vendorId);
 
-        // Get cart items for the vendor
+        // Only COD orders are handled here
+        const { deliveryDate, paymentMethod } = req.body;
+
+        if (paymentMethod !== "COD") {
+            return res.status(400).json({ message: "Use Stripe checkout for card payments" });
+        }
+
         const cart = await Cart.findOne({ vendorId }).populate("items.productId");
 
         if (!cart || cart.items.length === 0) {
@@ -346,18 +421,10 @@ const placeOrder = async (req, res) => {
         }
 
         const supplierId = uniqueSupplierIds[0];
-        const { deliveryDate, paymentMethod } = req.body;
 
         if (!deliveryDate) {
             return res.status(400).json({ message: "Delivery date is required" });
         }
-
-        if (!paymentMethod || !["COD", "Stripe"].includes(paymentMethod)) {
-            return res.status(400).json({ message: "Invalid or missing payment method" });
-        }
-
-        // Decide starting paymentStatus
-        const startingPaymentStatus = paymentMethod === "Stripe" ? "unpaid" : "pending";
 
         const newOrder = new Order({
             vendorId,
@@ -366,61 +433,26 @@ const placeOrder = async (req, res) => {
             deliveryDate,
             supplierId,
             paymentMethod,
-            paymentStatus: startingPaymentStatus,
+            paymentStatus: "pending",
             status: "pending",
         });
 
-        await newOrder.validate();
         await newOrder.save();
 
-        // Handle payment methods
-        if (paymentMethod === "Stripe") {
-            const line_items = items.map(item => ({
-                price_data: {
-                    currency: process.env.CURRENCY.toLowerCase(),
-                    product_data: {
-                        name: `Product ID: ${item.productId}`, // Could use product name
-                    },
-                    unit_amount: Math.floor(item.price * 100),
-                },
-                quantity: item.quantity,
-            }));
-
-            const session = await stripe.checkout.sessions.create({
-                payment_method_types: ["card"],
-                mode: "payment",
-                line_items,
-                success_url: `${process.env.FRONTEND_URL}/order-success?orderId=${newOrder._id}`,
-                cancel_url: `${process.env.FRONTEND_URL}/order-cancel`,
-                customer_email: vendor.email,
-                billing_address_collection: "required",
-                // ✅ Attach orderId to both the session and the payment intent
-                metadata: { orderId: newOrder._id.toString() },
-                payment_intent_data: {
-                    metadata: { orderId: newOrder._id.toString() },
-                },
-            });
-
-            return res.status(201).json({
-                message: "Order created successfully. Redirect to Stripe checkout.",
-                sessionUrl: session.url,
-            });
-        }
-
-        // COD orders — clear cart and notify immediately
+        // Clear cart immediately
         await Cart.findOneAndDelete({ vendorId });
 
+        // Notify supplier
         await sendNotification({
             userId: supplierId,
             type: "order",
             message: `You have a new COD order from vendor ${vendor.name}.`,
         });
 
-        res.status(201).json({ message: "COD order created successfully." });
-
+        res.status(201).json({ message: "COD order placed successfully." });
     } catch (err) {
-        console.error("Error placing order:", err);
-        res.status(400).json({ message: err.message });
+        console.error("Error placing COD order:", err);
+        res.status(500).json({ message: "Failed to place order", error: err.message });
     }
 };
 
@@ -730,5 +762,6 @@ module.exports = {
     getProductReviews,
     getMyReviews,
     editReview,
-    deleteReview
+    deleteReview,
+    createCheckoutSession
 };

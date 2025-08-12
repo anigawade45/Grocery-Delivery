@@ -23,6 +23,7 @@ const {
     getMyReviews,
     editReview,
     deleteReview,
+    createCheckoutSession
 } = require("../controllers/vendorController");
 const { requireAuth } = require("../middlewares/authMiddleware");
 
@@ -45,6 +46,7 @@ router.patch("/cart/:productId", requireAuth, updateCartItem); // Update cart it
 router.delete("/cart/:productId", requireAuth, removeFromCart);  // Remove item from cart
 
 // Order routes
+router.post("/create-checkout-session", requireAuth, createCheckoutSession);
 router.post("/order", requireAuth, placeOrder); // Place an order
 router.get("/orders", requireAuth, getOrderHistory); // Get order history
 router.get("/orders/:id", requireAuth, getOrderDetails);  // Get order details by ID

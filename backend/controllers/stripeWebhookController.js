@@ -25,7 +25,7 @@ const stripeWebhook = async (req, res) => {
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.body,
+      req.rawBody, // ✅ Use raw body
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
@@ -35,48 +35,47 @@ const stripeWebhook = async (req, res) => {
   }
 
   switch (event.type) {
-    case "checkout.session.completed":
-    case "payment_intent.succeeded": {
+    case "checkout.session.completed": {
       const session = event.data.object;
-      const orderId = session.metadata?.orderId;
 
-      if (!orderId) {
-        console.warn("Missing orderId in session metadata.");
+      // ✅ Get metadata from Stripe Checkout session
+      const vendorId = session.metadata?.vendorId;
+      const supplierId = session.metadata?.supplierId;
+      const items = session.metadata?.items ? JSON.parse(session.metadata.items) : [];
+      const totalAmount = Number(session.metadata?.totalAmount || 0);
+
+      if (!vendorId || !supplierId || items.length === 0) {
+        console.warn("Missing metadata in Stripe session.");
         return res.status(400).json({ received: false });
       }
 
       let mongoSession;
-
       try {
-        await ensureDbConnected(); // ✅ Ensure DB ready
+        await ensureDbConnected();
         mongoSession = await mongoose.startSession();
         mongoSession.startTransaction();
 
-        const order = await Order.findById(orderId).session(mongoSession);
-        if (!order) {
-          console.warn(`Order not found: ${orderId}`);
-          await mongoSession.abortTransaction();
-          return res.status(404).json({ received: false });
-        }
+        // ✅ Create order after successful payment
+        const order = new Order({
+          vendorId,
+          supplierId,
+          items: items.map(i => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            price: i.price
+          })),
+          totalAmount,
+          paymentMethod: "card",
+          paymentStatus: "paid",
+          status: "processing",
+          paymentId: session.payment_intent,
+          deliveryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+        });
 
-        // Only handle Stripe orders
-        if (order.paymentMethod !== "Stripe") {
-          console.warn(`Skipping non-Stripe order ${orderId} in webhook.`);
-          await mongoSession.abortTransaction();
-          return res.status(200).json({ received: true });
-        }
-
-        // Update payment status
-        order.paymentStatus = "paid";
-        order.status = "processing";
-
-        if (!order.deliveryDate) {
-          order.deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-        }
         await order.save({ session: mongoSession });
 
-        // Deduct stock
-        for (const item of order.items) {
+        // ✅ Deduct stock
+        for (const item of items) {
           await Product.findByIdAndUpdate(
             item.productId,
             { $inc: { stock: -item.quantity } },
@@ -84,69 +83,37 @@ const stripeWebhook = async (req, res) => {
           );
         }
 
-        // Clear vendor's cart
-        await Cart.findOneAndDelete({ vendorId: order.vendorId }).session(mongoSession);
+        // ✅ Clear vendor's cart
+        await Cart.findOneAndDelete({ vendorId }).session(mongoSession);
 
-        // Commit transaction first
         await mongoSession.commitTransaction();
+        console.log(`✅ Order ${order._id} created & marked paid.`);
 
-        console.log(`✅ Order ${orderId} marked as paid (card) and stock updated.`);
-
-        // Notify supplier AFTER successful commit
+        // Notify supplier AFTER commit
         try {
           await sendNotification({
-            userId: order.supplierId,
+            userId: supplierId,
             type: "order",
-            message: `You have a new paid order from vendor ${order.vendorId}.`,
+            message: `You have a new paid order from vendor ${vendorId}.`
           });
-          console.log(`📢 Supplier notified for order ${orderId}.`);
         } catch (notifyErr) {
-          console.error(`❌ Failed to send supplier notification for order ${orderId}:`, notifyErr);
+          console.error(`❌ Failed to send supplier notification:`, notifyErr);
         }
 
-        res.json({ received: true });
       } catch (err) {
-        console.error("Error processing successful payment:", err);
-        if (mongoSession) {
-          await mongoSession.abortTransaction();
-        }
-        return res.status(500).json({ received: false });
+        console.error("Error creating order from webhook:", err);
+        if (mongoSession) await mongoSession.abortTransaction();
       } finally {
-        if (mongoSession) {
-          mongoSession.endSession();
-        }
+        if (mongoSession) mongoSession.endSession();
       }
+
       break;
     }
 
     case "checkout.session.expired":
     case "payment_intent.payment_failed": {
-      const session = event.data.object;
-      const orderId = session.metadata?.orderId;
-
-      if (!orderId) {
-        console.warn("Missing orderId in session metadata.");
-        return res.status(400).json({ received: false });
-      }
-
-      try {
-        await ensureDbConnected(); // ✅ Ensure DB ready
-        const order = await Order.findById(orderId);
-        if (!order) break;
-
-        if (order.paymentMethod !== "card") {
-          console.warn(`Skipping non-card order ${orderId} in webhook.`);
-          break;
-        }
-
-        order.paymentStatus = "failed";
-        order.status = "cancelled";
-        await order.save();
-
-        console.log(`⚠️ Stripe payment failed for order ${orderId}. Marked cancelled.`);
-      } catch (err) {
-        console.error("Error processing failed payment:", err);
-      }
+      console.log(`⚠️ Payment failed or session expired: ${event.type}`);
+      // No order exists yet in new flow, so just log it
       break;
     }
 

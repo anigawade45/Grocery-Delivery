@@ -102,7 +102,7 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
-    setPlacingOrder(true); // disable button during request
+    setPlacingOrder(true);
     try {
       const token = localStorage.getItem("token");
 
@@ -134,39 +134,41 @@ const Cart = () => {
         totalAmount,
         deliveryDate,
         supplierId: supplierIds[0],
-        paymentMethod: paymentMethod,
+        paymentMethod,
       };
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/vendor/order`,
-        orderData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
       if (paymentMethod === "COD") {
-        if (res.data.success) {
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/vendor/order`,
+          orderData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (res.status === 201) {
           toast.success("✅ Order placed successfully with Cash on Delivery.");
-          navigate("/order-confirmation");
+          setCart({ items: [] }); // clear cart frontend
+          navigate("/order");
         } else {
           toast.error("Failed to place COD order.");
         }
       } else {
-        const sessionUrl = res.data.sessionUrl;
-        if (!sessionUrl) {
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/vendor/create-checkout-session`,
+          orderData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!res.data.sessionUrl) {
           toast.error("Failed to create Stripe checkout session.");
           return;
         }
-        window.location.href = sessionUrl;
+        window.location.href = res.data.sessionUrl;
       }
     } catch (err) {
       console.error("Error placing order:", err);
       toast.error("Failed to place order");
     } finally {
-      setPlacingOrder(false); // re-enable button
+      setPlacingOrder(false);
     }
   };
 
