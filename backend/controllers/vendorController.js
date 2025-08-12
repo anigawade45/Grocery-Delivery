@@ -393,11 +393,14 @@ const placeOrder = async (req, res) => {
                 success_url: `${process.env.FRONTEND_URL}/order-success?orderId=${newOrder._id}`,
                 cancel_url: `${process.env.FRONTEND_URL}/order-cancel`,
                 customer_email: vendor.email,
-                metadata: { orderId: newOrder._id.toString() },
                 billing_address_collection: "required",
+                // ✅ Attach orderId to both the session and the payment intent
+                metadata: { orderId: newOrder._id.toString() },
+                payment_intent_data: {
+                    metadata: { orderId: newOrder._id.toString() },
+                },
             });
 
-            // ❌ Do NOT clear cart or notify supplier here for Stripe orders
             return res.status(201).json({
                 message: "Order created successfully. Redirect to Stripe checkout.",
                 sessionUrl: session.url,
