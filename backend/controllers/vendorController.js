@@ -4,6 +4,7 @@ const Product = require("../models/Product");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
+const PendingOrder = require("../models/PendingOrder");
 const Notification = require("../models/Notification");
 const Review = require("../models/Review");
 const sendNotification = require("../middlewares/sendNotification");
@@ -352,7 +353,24 @@ const createCheckoutSession = async (req, res) => {
             return res.status(400).json({ message: "Delivery date is required" });
         }
 
-        // Create Stripe Checkout session
+        // Save pending order in DB
+        const pendingOrder = new PendingOrder({
+            vendorId,
+            supplierId,
+            items: items.map(i => ({
+                productId: i.productId,
+                quantity: i.quantity,
+                price: i.price,
+            })),
+            totalAmount,
+            deliveryDate,
+            paymentMethod: "Stripe",
+            status: "pending",
+        });
+
+        await pendingOrder.save();
+
+        // Create Stripe Checkout session with only minimal metadata (pendingOrderId)
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -374,7 +392,7 @@ const createCheckoutSession = async (req, res) => {
             metadata: {
                 vendorId: vendorId.toString(),
                 supplierId,
-                items: JSON.stringify(items),
+                pendingOrderId: pendingOrder._id.toString(),
                 totalAmount: totalAmount.toString(),
                 deliveryDate,
                 paymentMethod: "Stripe",
